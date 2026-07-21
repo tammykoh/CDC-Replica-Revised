@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { COURSES } from '../data';
 import { Course } from '../types';
-import { Award, Clock, DollarSign, AlertCircle, Sparkles, Check, Calculator } from 'lucide-react';
+import { Award, Clock, DollarSign, AlertCircle, Sparkles, Check, Calculator, X, BookOpen, Loader2, Shield, ChevronRight } from 'lucide-react';
 
 interface CoursesViewProps {
   setView: (view: string) => void;
   setSelectedCourseId: (courseId: string) => void;
+  enrolledCourseIds: string[];
+  onEnroll: (courseId: string) => void;
 }
 
-export default function CoursesView({ setView, setSelectedCourseId }: CoursesViewProps) {
+export default function CoursesView({ setView, setSelectedCourseId, enrolledCourseIds, onEnroll }: CoursesViewProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'car' | 'motorcycle' | 'private'>('all');
   
   // Fee Calculator States
@@ -19,6 +21,19 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
   const [includeFTT, setIncludeFTT] = useState(true);
   const [includePDL, setIncludePDL] = useState(true);
   const [simulatorsCount, setSimulatorsCount] = useState<number>(3);
+
+  // Signup Form Modal States
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [signupCourseId, setSignupCourseId] = useState<string>('');
+  const [fullName, setFullName] = useState<string>('Tammy Koh');
+  const [email, setEmail] = useState<string>('tammykohrw@gmail.com');
+  const [phone, setPhone] = useState<string>('9876 5432');
+  const [selectedCenter, setSelectedCenter] = useState<string>('Ubi Main Headquarters');
+  const [declaredAge, setDeclaredAge] = useState(false);
+  const [declaredMedical, setDeclaredMedical] = useState(false);
+  const [declaredEye, setDeclaredEye] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   // When course changes in calculator, update estimated lessons to match default
   const handleCalcCourseChange = (id: string) => {
@@ -34,9 +49,31 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
     return course.type === activeTab;
   });
 
+  // Sort enrolled courses to the bottom of the list
+  const sortedCourses = [...filteredCourses].sort((a, b) => {
+    const aEnrolled = enrolledCourseIds.includes(a.id);
+    const bEnrolled = enrolledCourseIds.includes(b.id);
+    if (aEnrolled && !bEnrolled) return 1;
+    if (!aEnrolled && bEnrolled) return -1;
+    return 0;
+  });
+
   const handleEnrolClick = (courseId: string) => {
-    setSelectedCourseId(courseId);
-    setView('booking');
+    if (enrolledCourseIds.includes(courseId)) {
+      setSelectedCourseId(courseId);
+      setView('booking');
+    } else {
+      setSignupCourseId(courseId);
+      setFullName('Tammy Koh');
+      setEmail('tammykohrw@gmail.com');
+      setPhone('9876 5432');
+      setDeclaredAge(false);
+      setDeclaredMedical(false);
+      setDeclaredEye(false);
+      setIsSubmitting(false);
+      setSignupSuccess(false);
+      setShowSignupModal(true);
+    }
   };
 
   // Fee calculation formulas
@@ -87,7 +124,7 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
 
       {/* Courses Catalog Grid */}
       <section className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="courses-grid">
-        {filteredCourses.map((course) => {
+        {sortedCourses.map((course) => {
           const isElite = course.id.includes('elite');
           return (
             <div 
@@ -174,12 +211,21 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
                     id={`enrol-cta-${course.id}`}
                     onClick={() => handleEnrolClick(course.id)}
                     className={`w-full text-xs font-extrabold py-3 rounded-xl shadow-sm transition-all text-center uppercase tracking-wider cursor-pointer ${
-                      isElite 
-                        ? 'bg-caution-gold text-asphalt-gray hover:bg-asphalt-gray hover:text-white' 
-                        : 'bg-primary text-white hover:bg-safety-blue'
+                      enrolledCourseIds.includes(course.id)
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                        : isElite 
+                          ? 'bg-caution-gold text-asphalt-gray hover:bg-asphalt-gray hover:text-white' 
+                          : 'bg-primary text-white hover:bg-safety-blue'
                     }`}
                   >
-                    Select & Start Booking
+                    {enrolledCourseIds.includes(course.id) ? (
+                      <span className="flex items-center justify-center gap-1.5">
+                        <Check className="w-4 h-4 text-emerald-100 shrink-0" />
+                        Enrolled - Book Lesson
+                      </span>
+                    ) : (
+                      'Enrol Now'
+                    )}
                   </button>
                 </div>
               </div>
@@ -364,6 +410,230 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
           </div>
         </div>
       </section>
+
+      {/* Simulated Sign-Up / Enrollment Form Modal */}
+      {showSignupModal && (
+        <div className="fixed inset-0 z-50 bg-asphalt-gray/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in" id="enrolment-form-modal">
+          <div className="bg-white rounded-2xl w-full max-w-lg border border-outline-variant shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-primary text-white p-5 flex justify-between items-center border-b border-outline-variant">
+              <div>
+                <h3 className="font-display font-extrabold text-base">Course Enrolment Form</h3>
+                <p className="text-[11px] text-slate-300">ComfortDelGro Driving Centre Registration</p>
+              </div>
+              <button 
+                id="close-signup-btn"
+                onClick={() => setShowSignupModal(false)}
+                className="text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {!signupSuccess ? (
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!fullName || !email || !phone || !declaredAge || !declaredMedical || !declaredEye) {
+                      alert('Please complete all form fields and checkboxes.');
+                      return;
+                    }
+                    setIsSubmitting(true);
+                    setTimeout(() => {
+                      onEnroll(signupCourseId);
+                      setIsSubmitting(false);
+                      setSignupSuccess(true);
+                    }, 1200);
+                  }}
+                  className="space-y-5"
+                >
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-start gap-3">
+                    <BookOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Selected Curriculum</span>
+                      <h4 className="font-bold text-xs sm:text-sm text-primary">
+                        {COURSES.find(c => c.id === signupCourseId)?.name} ({(COURSES.find(c => c.id === signupCourseId))?.code})
+                      </h4>
+                      <p className="text-[11px] text-slate-500 font-semibold">
+                        Deposit Required: ${(COURSES.find(c => c.id === signupCourseId)?.priceEnrolment || 185.00).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Student Details Fields */}
+                  <div className="space-y-3">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Student Information</span>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <label htmlFor="student-fullname" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Full Name (as in NRIC/Passport)</label>
+                        <input
+                          id="student-fullname"
+                          type="text"
+                          required
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs font-semibold text-primary outline-none focus:border-primary"
+                          placeholder="e.g. Tammy Koh"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label htmlFor="student-email" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Email Address</label>
+                          <input
+                            id="student-email"
+                            type="email"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs font-semibold text-primary outline-none focus:border-primary"
+                            placeholder="e.g. tammy@example.com"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="student-phone" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Mobile Contact</label>
+                          <input
+                            id="student-phone"
+                            type="tel"
+                            required
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs font-semibold text-primary outline-none focus:border-primary"
+                            placeholder="e.g. 9876 5432"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="student-center" className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Preferred Training Centre</label>
+                        <select
+                          id="student-center"
+                          value={selectedCenter}
+                          onChange={(e) => setSelectedCenter(e.target.value)}
+                          className="w-full bg-white border border-outline-variant rounded-lg px-3 py-2 text-xs font-semibold text-primary outline-none focus:border-primary cursor-pointer"
+                        >
+                          <option value="Ubi Main Headquarters">Ubi Main Headquarters (HQ)</option>
+                          <option value="Kovan Driving Center">Kovan Driving Branch</option>
+                          <option value="Tampines Driving Center">Tampines Driving Branch</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Mandatory Declarations (Required checkboxes to proceed) */}
+                  <div className="space-y-3 bg-primary-fixed/5 p-4 rounded-xl border border-primary/5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Mandatory Declarations</span>
+                    
+                    <div className="space-y-2.5">
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          required
+                          checked={declaredAge}
+                          onChange={(e) => setDeclaredAge(e.target.checked)}
+                          className="w-4 h-4 text-primary focus:ring-primary accent-primary mt-0.5 rounded animate-pulse"
+                        />
+                        <span className="text-[11px] text-on-surface-variant font-medium">
+                          I declare that I am at least <strong>18 years of age</strong> as of today's date.
+                        </span>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          required
+                          checked={declaredMedical}
+                          onChange={(e) => setDeclaredMedical(e.target.checked)}
+                          className="w-4 h-4 text-primary focus:ring-primary accent-primary mt-0.5 rounded"
+                        />
+                        <span className="text-[11px] text-on-surface-variant font-medium">
+                          I declare that I am physically fit and free from any major active medical conditions or suspensions.
+                        </span>
+                      </label>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          required
+                          checked={declaredEye}
+                          onChange={(e) => setDeclaredEye(e.target.checked)}
+                          className="w-4 h-4 text-primary focus:ring-primary accent-primary mt-0.5 rounded"
+                        />
+                        <span className="text-[11px] text-on-surface-variant font-medium">
+                          I certify that I can pass the standard Traffic Police physical and eyesight test.
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupModal(false)}
+                      className="flex-1 border border-outline-variant text-slate-600 text-xs font-bold py-2.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !declaredAge || !declaredMedical || !declaredEye || !fullName || !email || !phone}
+                      className="flex-1 bg-primary hover:bg-safety-blue text-white text-xs font-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Processing...
+                        </>
+                      ) : (
+                        'Submit Registration'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="text-center py-6 space-y-5 animate-fade-in">
+                  <div className="w-16 h-16 rounded-full bg-green-50 text-green-600 border border-green-200 flex items-center justify-center mx-auto shadow-sm">
+                    <Check className="w-8 h-8 text-green-600" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="font-display font-extrabold text-lg text-primary">Registration Approved!</h4>
+                    <p className="text-xs text-on-surface-variant max-w-sm mx-auto leading-relaxed">
+                      You are now officially enrolled in <strong>{COURSES.find(c => c.id === signupCourseId)?.name}</strong>! Your account has been updated with curriculum credits.
+                    </p>
+                  </div>
+
+                  <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 text-left max-w-sm mx-auto space-y-1.5 text-[11px]">
+                    <p className="text-emerald-800 font-bold flex items-center gap-1">
+                      <Shield className="w-4 h-4 text-emerald-600" /> Enrolment Receipt Generated
+                    </p>
+                    <p className="text-slate-600"><strong>Student ID:</strong> CDC-{(100000 + Math.floor(Math.random() * 900000))}</p>
+                    <p className="text-slate-600"><strong>Registered Email:</strong> {email}</p>
+                    <p className="text-slate-600"><strong>Allocated Centre:</strong> {selectedCenter}</p>
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        setShowSignupModal(false);
+                        setSelectedCourseId(signupCourseId);
+                        setView('booking');
+                      }}
+                      className="w-full bg-primary hover:bg-safety-blue text-white text-xs font-bold py-3 rounded-lg shadow-md transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <span>Start Booking Driving Lessons</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

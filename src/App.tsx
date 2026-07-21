@@ -9,6 +9,25 @@ import SocialView from './components/SocialView';
 export default function App() {
   const [currentView, setView] = useState<string>('home');
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('cdc_enrolled_courses');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return ['class-3a']; // Default enrollment matching the mock bookings
+  });
+
+  const handleEnrollInCourse = (courseId: string) => {
+    if (!enrolledCourseIds.includes(courseId)) {
+      const updated = [...enrolledCourseIds, courseId];
+      setEnrolledCourseIds(updated);
+      localStorage.setItem('cdc_enrolled_courses', JSON.stringify(updated));
+    }
+    setSelectedCourseId(courseId);
+  };
 
   const renderActiveView = () => {
     switch (currentView) {
@@ -18,14 +37,17 @@ export default function App() {
         return (
           <CoursesView 
             setView={setView} 
-            setSelectedCourseId={setSelectedCourseId} 
+            setSelectedCourseId={setSelectedCourseId}
+            enrolledCourseIds={enrolledCourseIds}
+            onEnroll={handleEnrollInCourse}
           />
         );
       case 'booking':
         return (
           <BookingView 
             selectedCourseId={selectedCourseId} 
-            setSelectedCourseId={setSelectedCourseId} 
+            setSelectedCourseId={setSelectedCourseId}
+            enrolledCourseIds={enrolledCourseIds}
           />
         );
       case 'social':

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { COURSES, INSTRUCTORS } from '../data';
 import { Booking, Course, Instructor } from '../types';
-import { Calendar, User, Clock, CheckCircle2, Shield, AlertTriangle, Trash2, Milestone, ChevronRight, RefreshCw, Layers, Wallet, Plus, ChevronDown, ChevronUp, Check, BookOpen } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle2, Shield, AlertTriangle, Trash2, Milestone, ChevronRight, RefreshCw, Layers, Wallet, Plus, ChevronDown, ChevronUp, Check, BookOpen, CreditCard, QrCode, Loader2 } from 'lucide-react';
 
 interface BookingViewProps {
   selectedCourseId: string;
   setSelectedCourseId: (courseId: string) => void;
+  enrolledCourseIds: string[];
 }
 
 // Initial default mock bookings if localStorage is empty
@@ -44,7 +45,7 @@ const DEFAULT_BOOKINGS: Booking[] = [
   }
 ];
 
-export default function BookingView({ selectedCourseId, setSelectedCourseId }: BookingViewProps) {
+export default function BookingView({ selectedCourseId, setSelectedCourseId, enrolledCourseIds }: BookingViewProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [showBooker, setShowBooker] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
@@ -55,8 +56,30 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
   const [showLessonsList, setShowLessonsList] = useState<boolean>(false);
   const [topUpAmount, setTopUpAmount] = useState<string>('100');
 
+  // Simulator Booking States
+  const [completedSimulators, setCompletedSimulators] = useState<number>(2);
+  const [showSimulatorBooker, setShowSimulatorBooker] = useState<boolean>(false);
+  const [simulatorDate, setSimulatorDate] = useState<string>('');
+  const [simulatorSession, setSimulatorSession] = useState<number>(3);
+
+  // Payment Modal States
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [paymentAmount, setPaymentAmount] = useState<number>(100);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'paynow'>('card');
+  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
+  
+  // Card Inputs
+  const [cardNumber, setCardNumber] = useState<string>('4000 1234 5678 9010');
+  const [cardName, setCardName] = useState<string>('JOHN DOE');
+  const [cardExpiry, setCardExpiry] = useState<string>('12/28');
+  const [cardCvv, setCardCvv] = useState<string>('123');
+
   // Scheduler Wizard States
-  const [chosenCourseId, setChosenCourseId] = useState(selectedCourseId || COURSES[0].id);
+  const [chosenCourseId, setChosenCourseId] = useState(() => {
+    if (selectedCourseId && enrolledCourseIds.includes(selectedCourseId)) return selectedCourseId;
+    return enrolledCourseIds[0] || COURSES[0].id;
+  });
   const [chosenPool, setChosenPool] = useState<'standard' | 'elite' | 'dedicated'>('standard');
   const [chosenDate, setChosenDate] = useState<string>(new Date(Date.now() + 86400000).toISOString().split('T')[0]); // Tomorrow
   const [chosenSession, setChosenSession] = useState<number>(3);
@@ -72,6 +95,11 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
   };
 
   const activeCourse = COURSES.find(c => c.id === chosenCourseId) || COURSES[0];
+  const enrolledCourses = COURSES.filter(c => enrolledCourseIds.includes(c.id));
+  
+  const currentSelectionIsClashing = bookings.some(
+    b => b.date === chosenDate && b.sessionNumber === chosenSession && b.status === 'scheduled'
+  );
 
   // CDC Standard Driving Sessions
   const CDC_SESSIONS = [
@@ -86,10 +114,10 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
 
   // Sync chosen course ID when selectedCourseId prop changes
   useEffect(() => {
-    if (selectedCourseId) {
+    if (selectedCourseId && enrolledCourseIds.includes(selectedCourseId)) {
       setChosenCourseId(selectedCourseId);
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, enrolledCourseIds]);
 
   // Load from localStorage or seed defaults
   useEffect(() => {
@@ -110,6 +138,13 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
       setWalletBalance(parseFloat(savedWallet));
     } else {
       localStorage.setItem('cdc_wallet_balance', '350.00');
+    }
+
+    const savedSims = localStorage.getItem('cdc_completed_simulators');
+    if (savedSims) {
+      setCompletedSimulators(parseInt(savedSims, 10));
+    } else {
+      localStorage.setItem('cdc_completed_simulators', '2');
     }
   }, []);
 
@@ -212,6 +247,12 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
     
     if (bookingToCancel) {
       updateWallet(walletBalance + bookingToCancel.totalFee);
+      if (bookingToCancel.courseId === 'simulator') {
+        const currentSims = parseInt(localStorage.getItem('cdc_completed_simulators') || '2', 10);
+        const updatedSims = Math.max(0, currentSims - 1);
+        setCompletedSimulators(updatedSims);
+        localStorage.setItem('cdc_completed_simulators', updatedSims.toString());
+      }
     }
     
     setCancelTarget(null);
@@ -246,7 +287,7 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
         {/* Curricular Progress Meter (Bento Box style) */}
         <div className="bg-white border border-outline-variant rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" id="progress-meter">
           {/* Card 1: Student Wallet */}
-          <div className="space-y-4 flex flex-col justify-between" id="wallet-progress-card">
+          <div className="space-y-4" id="wallet-progress-card">
             <div className="space-y-3">
               <div className="flex justify-between items-center text-xs font-bold">
                 <span className="text-primary flex items-center gap-1.5">
@@ -262,7 +303,7 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
             </div>
             
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">Custom Top Up Amount</label>
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">Top Up Amount</label>
               <div className="flex gap-1.5">
                 <div className="relative flex-grow">
                   <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant font-mono">$</span>
@@ -279,7 +320,10 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                   onClick={() => {
                     const val = parseFloat(topUpAmount);
                     if (!isNaN(val) && val > 0) {
-                      handleTopUp(val);
+                      setPaymentAmount(val);
+                      setShowPaymentModal(true);
+                      setPaymentSuccess(false);
+                      setIsProcessingPayment(false);
                     } else {
                       alert('Please enter a valid amount.');
                     }
@@ -300,23 +344,14 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                 <Milestone className="w-4 h-4 text-safety-blue" />
                 Practical Milestones
               </span>
-              <span className="font-mono text-slate-500">14 / 22 Passed</span>
+              <span className="font-mono text-slate-500">63.6% Completed</span>
             </div>
             
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-1.5">
               <div className="h-full bg-safety-blue rounded-full" style={{ width: '63.6%' }}></div>
             </div>
 
-            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
-              <span>Stage 1: Passed</span>
-              <span className="font-bold text-primary">Stage 2: Ongoing (Lesson 15)</span>
-            </div>
-
-            <div className="pt-2 border-t border-outline-variant/50">
-              <div className="flex justify-between text-[11px] font-medium">
-                <span className="text-green-600 font-bold">Passed: 14 lessons</span>
-                <span className="text-primary font-bold">Pending: 8 lessons</span>
-              </div>
+            <div className="pt-2">
               <button 
                 onClick={() => setShowLessonsList(!showLessonsList)}
                 className="mt-2 text-[10px] font-extrabold text-safety-blue hover:text-primary flex items-center gap-1 cursor-pointer"
@@ -328,24 +363,30 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
               {showLessonsList && (
                 <div className="mt-3 border border-outline-variant/60 rounded-xl p-2.5 bg-slate-50/50 space-y-2 max-h-60 overflow-y-auto pr-1 animate-fade-in" id="lessons-compact-list">
                   {[
-                    { name: 'Vehicle Controls & Familiarisation', desc: 'Starting, moving off, blind spot checks, clutch biting point, steering grip and coordination.', status: 'PASSED' },
-                    { name: 'Basic Traffic & Turns', desc: 'Left and right turn angles, positioning, scanning distances, changing lanes, speed deceleration.', status: 'PASSED' },
-                    { name: 'Circuit Obstacles Part 1', desc: 'Slope climbing and hill starts, pedestrian zebra crossing regulations, directional changes.', status: 'PASSED' },
-                    { name: 'Parking & S-Course Intro', desc: 'Reverse vertical parking, alignment references, driving slowly into curves.', status: 'PASSED' },
-                    { name: 'Narrow Courses & Precision Turning', desc: 'Crank course, narrow S-course navigation without hitting kerbs, mounting prevention techniques.', status: 'PENDING' },
-                    { name: 'Parallel Parking & Emergency Brake', desc: 'Entering parallel slots, safety hazard reaction time, rapid emergency halting.', status: 'PENDING' },
-                    { name: 'Road Test Outing & Advanced Lane Merging', desc: 'Singapore public road driving routes, speed management, heavy vehicle overtaking safety.', status: 'PENDING' },
-                    { name: 'Final TP Mock Evaluation', desc: 'Complete circuit and public road simulator evaluation matching standard Traffic Police criteria.', status: 'PENDING' }
+                    { name: 'Vehicle Controls & Familiarisation', desc: 'Starting, moving off, blind spot checks, clutch biting point, steering grip and coordination.', status: 'Completed' },
+                    { name: 'Basic Traffic & Turns', desc: 'Left and right turn angles, positioning, scanning distances, changing lanes, speed deceleration.', status: 'Completed' },
+                    { name: 'Circuit Obstacles Part 1', desc: 'Slope climbing and hill starts, pedestrian zebra crossing regulations, directional changes.', status: 'Completed' },
+                    { name: 'Parking & S-Course Intro', desc: 'Reverse vertical parking, alignment references, driving slowly into curves.', status: 'Completed' },
+                    { name: 'Narrow Courses & Precision Turning', desc: 'Crank course, narrow S-course navigation without hitting kerbs, mounting prevention techniques.', status: 'In Progress' },
+                    { name: 'Parallel Parking & Emergency Brake', desc: 'Entering parallel slots, safety hazard reaction time, rapid emergency halting.', status: 'Incomplete' },
+                    { name: 'Road Test Outing & Advanced Lane Merging', desc: 'Singapore public road driving routes, speed management, heavy vehicle overtaking safety.', status: 'Incomplete' },
+                    { name: 'Final TP Mock Evaluation', desc: 'Complete circuit and public road simulator evaluation matching standard Traffic Police criteria.', status: 'Incomplete' }
                   ].map((item, idx) => (
                     <div key={idx} className={`p-2 rounded border text-xs ${
-                      item.status === 'PASSED' 
+                      item.status === 'Completed' 
                         ? 'bg-green-50/50 border-green-100/80 text-green-800' 
-                        : 'bg-white border-outline-variant/50 text-slate-700'
+                        : item.status === 'In Progress'
+                          ? 'bg-yellow-50/60 border-yellow-200/80 text-yellow-800'
+                          : 'bg-white border-outline-variant/50 text-slate-500'
                     }`}>
                       <div className="flex justify-between items-start gap-1 font-bold mb-1">
                         <span className="text-[11px] leading-tight text-primary">{item.name}</span>
                         <span className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 font-black ${
-                          item.status === 'PASSED' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                          item.status === 'Completed' 
+                            ? 'bg-green-100 text-green-800' 
+                            : item.status === 'In Progress'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-slate-100 text-slate-500'
                         }`}>
                           {item.status}
                         </span>
@@ -365,17 +406,38 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                 <Layers className="w-4 h-4 text-safety-blue" />
                 Simulator Compliance
               </span>
-              <span className="font-mono text-slate-500">2 / 3 Completed</span>
+              <span className="font-mono text-slate-500">{completedSimulators} / 3 Completed</span>
             </div>
             
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full" style={{ width: '66.6%' }}></div>
+              <div className="h-full bg-primary rounded-full" style={{ width: `${(completedSimulators / 3) * 100}%` }}></div>
             </div>
 
             <div className="flex justify-between text-[10px] text-slate-500">
               <span>Booking limit: Unrestricted</span>
-              <span className="font-bold text-primary">1 session remaining</span>
+              <span className="font-bold text-primary">
+                {3 - completedSimulators > 0 ? `${3 - completedSimulators} session${3 - completedSimulators !== 1 ? 's' : ''} remaining` : 'Requirement Met'}
+              </span>
             </div>
+
+            {completedSimulators < 3 ? (
+              <button
+                onClick={() => {
+                  setSimulatorDate(new Date(Date.now() + 86400000).toISOString().split('T')[0]);
+                  setSimulatorSession(3);
+                  setShowSimulatorBooker(true);
+                }}
+                className="w-full bg-primary hover:bg-safety-blue text-white text-[11px] font-bold py-2 px-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+              >
+                <Plus className="w-3.5 h-3.5 text-caution-gold" />
+                Book Simulator Lesson
+              </button>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-green-600 bg-green-50 p-2 rounded-lg border border-green-200 mt-1">
+                <Check className="w-4 h-4 text-green-600 shrink-0" />
+                All Simulator Modules Completed
+              </div>
+            )}
           </div>
 
           {/* Card 4: Progress Exams */}
@@ -407,7 +469,7 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
             <div className="bg-primary text-white p-5 flex justify-between items-center border-b border-outline-variant">
               <div>
                 <h3 className="font-display font-extrabold text-base">Schedule New Driving Session</h3>
-                <p className="text-[11px] text-slate-300">Complete the 5-step wizard to secure your slot</p>
+                <p className="text-[11px] text-slate-300">Complete the 4-step wizard to secure your slot</p>
               </div>
               <button 
                 id="close-wizard-btn"
@@ -426,9 +488,7 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
               <ChevronRight className="w-3.5 h-3.5 mt-0.5" />
               <span className={bookingStep >= 3 ? 'text-primary font-extrabold' : ''}>3. Slot</span>
               <ChevronRight className="w-3.5 h-3.5 mt-0.5" />
-              <span className={bookingStep >= 4 ? 'text-primary font-extrabold' : ''}>4. Instructor</span>
-              <ChevronRight className="w-3.5 h-3.5 mt-0.5" />
-              <span className={bookingStep >= 5 ? 'text-primary font-extrabold' : ''}>5. Confirm</span>
+              <span className={bookingStep >= 4 ? 'text-primary font-extrabold' : ''}>4. Confirm</span>
             </div>
 
             {/* Modal Body Scroll Container */}
@@ -437,11 +497,11 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
               {bookingStep === 1 && (
                 <div className="space-y-4" id="wizard-step-1">
                   <div>
-                    <h4 className="font-display font-extrabold text-sm text-primary">Step 1: Choose Licensed Program</h4>
-                    <p className="text-xs text-on-surface-variant">Select the current driving program you want to schedule a lesson for.</p>
+                    <h4 className="font-display font-extrabold text-sm text-primary">Step 1: Your Enrolled Program</h4>
+                    <p className="text-xs text-on-surface-variant">You are scheduling a session for your current active enrollment.</p>
                   </div>
                   <div className="space-y-3">
-                    {COURSES.map((course) => (
+                    {enrolledCourses.map((course) => (
                       <label 
                         key={course.id}
                         onClick={() => setChosenCourseId(course.id)}
@@ -582,25 +642,45 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                       {CDC_SESSIONS.map((session) => {
                         const isWeekend = isWeekendChosen();
                         const isPeak = session.isPeak || isWeekend;
+                        const isClashing = bookings.some(
+                          b => b.date === chosenDate && b.sessionNumber === session.num && b.status === 'scheduled'
+                        );
+
                         return (
                           <button
                             key={session.num}
-                            onClick={() => setChosenSession(session.num)}
-                            className={`flex justify-between items-center p-3.5 border rounded-xl text-left transition-colors cursor-pointer ${
-                              chosenSession === session.num
-                                ? 'border-2 border-primary bg-primary-fixed/15'
-                                : 'bg-white border-outline-variant hover:bg-slate-50'
+                            onClick={() => !isClashing && setChosenSession(session.num)}
+                            disabled={isClashing}
+                            className={`flex justify-between items-center p-3.5 border rounded-xl text-left transition-all ${
+                              isClashing
+                                ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                                : chosenSession === session.num
+                                  ? 'border-2 border-primary bg-primary-fixed/15'
+                                  : 'bg-white border-outline-variant hover:bg-slate-50 cursor-pointer'
                             }`}
                           >
                             <div className="flex items-center gap-3">
-                              <span className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-xs font-extrabold text-primary font-mono">{session.num}</span>
+                              <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-extrabold font-mono ${
+                                isClashing 
+                                  ? 'bg-slate-200 text-slate-400' 
+                                  : 'bg-slate-100 text-primary'
+                              }`}>{session.num}</span>
                               <div>
-                                <span className="font-bold text-xs text-primary block">{session.time}</span>
-                                <span className="text-[10px] text-slate-500">Regular training slot</span>
+                                <span className={`font-bold text-xs block ${isClashing ? 'text-slate-400 line-through' : 'text-primary'}`}>{session.time}</span>
+                                {isClashing ? (
+                                  <span className="text-[10px] text-red-500 font-semibold flex items-center gap-1 mt-0.5">
+                                    <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
+                                    Clashes with other lesson
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-slate-500">Regular training slot</span>
+                                )}
                               </div>
                             </div>
                             
-                            {isPeak ? (
+                            {isClashing ? (
+                              <span className="text-[8px] font-bold bg-red-50 text-red-600 px-2 py-1 rounded-full uppercase tracking-wider">Unavailable</span>
+                            ) : isPeak ? (
                               <span className="text-[8px] font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase tracking-wider">Peak (+$9.50)</span>
                             ) : (
                               <span className="text-[8px] font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full uppercase tracking-wider">Normal</span>
@@ -609,61 +689,22 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                         );
                       })}
                     </div>
+
+                    {currentSelectionIsClashing && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-4 animate-fade-in">
+                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 animate-bounce" />
+                        <span>You already have another driving lesson scheduled for this time slot. Please select a non-clashing session.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
-              {/* STEP 4: Select Specific Instructor */}
+              {/* STEP 4: Review & Checkout invoice */}
               {bookingStep === 4 && (
-                <div className="space-y-4" id="wizard-step-4">
-                  <div>
-                    <h4 className="font-display font-extrabold text-sm text-primary">Step 4: Pick Certified Driving Coach</h4>
-                    <p className="text-xs text-on-surface-variant">Showing certified coaches matching your selected pool: <strong>{chosenPool}</strong>.</p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {availableInstructors.map((inst) => (
-                      <label 
-                        key={inst.id}
-                        onClick={() => setChosenInstructorId(inst.id)}
-                        className={`flex gap-4 p-4 border rounded-xl cursor-pointer transition-all ${
-                          chosenInstructorId === inst.id 
-                            ? 'border-2 border-primary bg-primary-fixed/15 shadow-sm' 
-                            : 'border-outline-variant hover:bg-slate-50'
-                        }`}
-                      >
-                        <input 
-                          type="radio" 
-                          name="wizard-instructor" 
-                          checked={chosenInstructorId === inst.id}
-                          onChange={() => {}}
-                          className="w-4 h-4 mt-4 text-primary focus:ring-primary accent-primary" 
-                        />
-                        <img 
-                          referrerPolicy="no-referrer"
-                          src={inst.image} 
-                          alt={inst.name} 
-                          className="w-12 h-12 rounded-full object-cover border border-outline-variant flex-shrink-0" 
-                        />
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs sm:text-sm text-primary">{inst.name}</span>
-                            <span className="text-[9px] font-extrabold bg-primary/10 text-primary-fixed-dim px-2 py-0.5 rounded uppercase">{inst.type}</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 font-medium">⭐ {inst.rating} Rating | {inst.experienceYears} Years Exp | {inst.passRate}% Pass Rate</p>
-                          <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-2">{inst.bio}</p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 5: Review & Checkout invoice */}
-              {bookingStep === 5 && (
-                <div className="space-y-5" id="wizard-step-5">
+                <div className="space-y-5" id="wizard-step-4">
                   <div className="space-y-1">
-                    <h4 className="font-display font-extrabold text-sm text-primary">Step 5: Review Slot Invoice</h4>
+                    <h4 className="font-display font-extrabold text-sm text-primary">Step 4: Review Slot Invoice</h4>
                     <p className="text-xs text-on-surface-variant">Review lesson details and confirm pricing breakdown before final booking submission.</p>
                   </div>
 
@@ -677,10 +718,10 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                     </div>
 
                     <div className="space-y-2 text-xs border-t sm:border-t-0 sm:border-l border-outline-variant/60 pt-4 sm:pt-0 sm:pl-4">
-                      <span className="text-[9px] uppercase font-bold text-slate-400 block">Instructor Assigned</span>
+                      <span className="text-[9px] uppercase font-bold text-slate-400 block">Instructor Assigned (Auto-assigned)</span>
                       <p className="font-bold text-sm text-primary">{(INSTRUCTORS.find(i => i.id === chosenInstructorId) || INSTRUCTORS[0]).name}</p>
                       <p className="text-on-surface-variant capitalize">Coach Pool Level: <strong>{chosenPool}</strong></p>
-                      <p className="text-on-surface-variant">Experience level: <strong>{(INSTRUCTORS.find(i => i.id === chosenInstructorId) || INSTRUCTORS[0]).experienceYears} Years</strong></p>
+                      <p className="text-[10px] text-green-600 font-semibold bg-green-50 px-2 py-1 rounded inline-block mt-1">✔ Auto-assigned matching your selected pool</p>
                     </div>
                   </div>
 
@@ -745,11 +786,16 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                 Back
               </button>
 
-              {bookingStep < 5 ? (
+              {bookingStep < 4 ? (
                 <button
                   id="wizard-next-btn"
+                  disabled={bookingStep === 3 && currentSelectionIsClashing}
                   onClick={() => setBookingStep(bookingStep + 1)}
-                  className="bg-primary hover:bg-safety-blue text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-colors cursor-pointer"
+                  className={`text-xs font-bold px-5 py-2.5 rounded-lg transition-all ${
+                    bookingStep === 3 && currentSelectionIsClashing
+                      ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed'
+                      : 'bg-primary hover:bg-safety-blue text-white cursor-pointer shadow-sm'
+                  }`}
                 >
                   Continue
                 </button>
@@ -812,6 +858,422 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
         </div>
       )}
 
+      {/* Simulator Booker Modal */}
+      {showSimulatorBooker && (
+        <div className="fixed inset-0 z-50 bg-asphalt-gray/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in" id="simulator-booker-modal">
+          <div className="bg-white rounded-2xl w-full max-w-md border border-outline-variant shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-primary text-white p-5 flex justify-between items-center border-b border-outline-variant">
+              <div>
+                <h3 className="font-display font-extrabold text-base flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-caution-gold" />
+                  Book Simulator Module {completedSimulators + 1}
+                </h3>
+                <p className="text-[11px] text-slate-300">Mandatory driving training requirement</p>
+              </div>
+              <button 
+                onClick={() => setShowSimulatorBooker(false)}
+                className="text-white hover:text-slate-200 text-lg font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5">
+              <div className="bg-slate-50 border border-outline-variant/60 rounded-xl p-3 text-xs space-y-1">
+                <span className="text-[9px] uppercase font-bold text-slate-400 block">Course Requirement</span>
+                <p className="font-bold text-primary">Simulator Lesson {completedSimulators + 1} of 3</p>
+                <p className="text-on-surface-variant leading-relaxed">
+                  Required to complete all 3 simulator sessions before booking your practical test evaluation.
+                </p>
+              </div>
+
+              {/* Step 1: Pick Date */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">1. Select Booking Date</span>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {upcomingDays.map((day) => (
+                    <button
+                      key={day.dateStr}
+                      type="button"
+                      onClick={() => setSimulatorDate(day.dateStr)}
+                      className={`flex flex-col items-center py-2 rounded-xl border text-center transition-colors cursor-pointer ${
+                        simulatorDate === day.dateStr
+                          ? 'bg-primary text-white border-primary shadow-sm'
+                          : 'bg-white border-outline-variant hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="text-[9px] uppercase font-bold text-slate-400 block">{day.dayName}</span>
+                      <span className="font-mono text-xs font-black block mt-0.5">{day.dayNum}</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Manual date input */}
+                <div className="flex items-center gap-2 bg-surface-mist/40 p-2 rounded-lg border border-outline-variant/60 mt-1">
+                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="text-[10px] font-bold text-on-surface">Specific Date:</span>
+                  <input
+                    type="date"
+                    value={simulatorDate}
+                    onChange={(e) => setSimulatorDate(e.target.value)}
+                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    className="bg-white border border-outline-variant rounded px-2 py-0.5 text-[11px] font-semibold outline-none focus:border-primary flex-grow"
+                  />
+                </div>
+              </div>
+
+              {/* Step 2: Session Slot */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">2. Select Session Slot</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {CDC_SESSIONS.slice(0, 5).map((session) => {
+                    const isClashing = bookings.some(
+                      b => b.date === simulatorDate && b.sessionNumber === session.num && b.status === 'scheduled'
+                    );
+                    return (
+                      <button
+                        key={session.num}
+                        type="button"
+                        disabled={isClashing}
+                        onClick={() => setSimulatorSession(session.num)}
+                        className={`flex justify-between items-center p-2.5 border rounded-lg text-left transition-colors cursor-pointer ${
+                          isClashing
+                            ? 'bg-red-50/40 border-red-100 text-slate-300 line-through cursor-not-allowed opacity-60'
+                            : simulatorSession === session.num
+                              ? 'border-2 border-primary bg-primary-fixed/15 text-primary font-bold'
+                              : 'bg-white border-outline-variant hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-extrabold font-mono ${
+                            isClashing 
+                              ? 'bg-red-100 text-red-500' 
+                              : 'bg-slate-100 text-primary'
+                          }`}>{session.num}</span>
+                          <span className={`font-bold text-[11px] ${isClashing ? 'text-red-400' : 'text-primary'}`}>
+                            {session.time.split(' - ')[0]}
+                          </span>
+                        </div>
+                        <span className="text-[8px] font-black uppercase text-slate-400">
+                          {isClashing ? 'Clashed' : 'Lab'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Step 3: Cost and confirmation */}
+              <div className="border-t border-outline-variant/50 pt-4 space-y-2 text-xs">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-bold text-primary">Simulator Lesson Fee:</span>
+                  <span className="font-mono text-sm font-black text-primary">$28.00</span>
+                </div>
+                <div className="flex justify-between items-baseline text-[11px]">
+                  <span className="text-slate-500">My Student Wallet Balance:</span>
+                  <span className="font-mono font-bold text-primary">${walletBalance.toFixed(2)}</span>
+                </div>
+
+                {walletBalance < 28.00 && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 p-2.5 rounded-lg text-[10px] flex items-start gap-1.5 mt-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Insufficient Balance:</strong> You need $28.00 in your wallet to book this lesson. Please top up your wallet.
+                    </span>
+                  </div>
+                )}
+
+                {bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled') && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 p-2.5 rounded-lg text-[10px] flex items-start gap-1.5 mt-2 animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Schedule Conflict:</strong> You already have another session booked for this date & time slot. Please choose another session.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 border-t border-outline-variant/60 p-4 flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowSimulatorBooker(false)}
+                className="px-4 py-2 bg-white border border-outline-variant hover:bg-slate-100 text-xs font-bold text-on-surface-variant rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={walletBalance < 28.00 || !simulatorDate || bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled')}
+                onClick={() => {
+                  if (walletBalance < 28.00) return;
+                  if (bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled')) return;
+                  
+                  // Deduct wallet
+                  updateWallet(walletBalance - 28.00);
+
+                  // Create new booking
+                  const nextSimsNum = completedSimulators + 1;
+                  const newBooking: Booking = {
+                    id: `b-sim-${Date.now()}`,
+                    courseId: 'simulator',
+                    courseName: `Driving Simulator (Module ${nextSimsNum})`,
+                    date: simulatorDate,
+                    sessionNumber: simulatorSession,
+                    sessionTime: (CDC_SESSIONS.find(s => s.num === simulatorSession) || CDC_SESSIONS[2]).time,
+                    instructorName: 'Simulator Lab Coach',
+                    instructorId: 'inst-sim',
+                    instructorType: 'standard',
+                    baseFee: 28.00,
+                    peakSurcharge: 0,
+                    instructorSurcharge: 0,
+                    totalFee: 28.00,
+                    status: 'scheduled'
+                  };
+
+                  saveBookings([newBooking, ...bookings]);
+
+                  // Increment compliance count
+                  setCompletedSimulators(nextSimsNum);
+                  localStorage.setItem('cdc_completed_simulators', nextSimsNum.toString());
+
+                  // Close modal
+                  setShowSimulatorBooker(false);
+                  alert(`Simulator Module ${nextSimsNum} successfully booked! $28.00 debited from student wallet.`);
+                }}
+                className={`px-5 py-2 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                  walletBalance < 28.00 || !simulatorDate || bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled')
+                    ? 'bg-slate-300 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                Confirm & Book Lesson
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Simulated Payment Gateway Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 bg-asphalt-gray/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-fade-in" id="payment-gateway-modal">
+          <div className="bg-white rounded-2xl w-full max-w-md border border-outline-variant shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-5 flex justify-between items-center border-b border-outline-variant relative">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-green-400" />
+                <div>
+                  <h3 className="font-display font-black text-sm tracking-wide uppercase">Secure Payment Checkout</h3>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Merchant: COMFORTDELGRO DRIVING PORTAL</p>
+                </div>
+              </div>
+              {!isProcessingPayment && (
+                <button 
+                  onClick={() => setShowPaymentModal(false)}
+                  className="text-slate-400 hover:text-white text-lg font-bold cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6">
+              {/* Payment Status State */}
+              {isProcessingPayment ? (
+                <div className="py-8 text-center space-y-4 flex flex-col items-center justify-center">
+                  {paymentSuccess ? (
+                    <div className="space-y-4 animate-scale-up">
+                      <div className="w-16 h-16 rounded-full bg-green-500 border-4 border-green-200 flex items-center justify-center text-white text-2xl font-black mx-auto shadow-md">
+                        ✓
+                      </div>
+                      <div>
+                        <h4 className="font-display font-black text-slate-900 text-base">Payment Successful!</h4>
+                        <p className="text-xs text-green-600 font-bold font-mono mt-1">+${paymentAmount.toFixed(2)} Added</p>
+                        <p className="text-[10px] text-slate-400 mt-2">Updating your student wallet in a moment...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
+                      <div>
+                        <h4 className="font-display font-bold text-slate-800 text-sm">Processing Secure Transaction...</h4>
+                        <p className="text-[11px] text-slate-500 max-w-xs mx-auto mt-1 leading-relaxed">
+                          Verifying credentials, securing token settlements, and authorizing bank deposit transfer safely.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Amount summary */}
+                  <div className="bg-slate-50 border border-outline-variant/60 rounded-xl p-4 text-center space-y-1">
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block tracking-wider">Top-up Amount</span>
+                    <span className="text-3xl font-black text-slate-950 font-mono block">${paymentAmount.toFixed(2)} SGD</span>
+                    <span className="text-[10px] text-slate-500 block font-mono">Ref: TOP-${Date.now().toString().slice(-6)}</span>
+                  </div>
+
+                  {/* Payment Methods Selector */}
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Payment Method</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('card')}
+                        className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer ${
+                          paymentMethod === 'card'
+                            ? 'border-2 border-primary bg-primary/5 text-primary'
+                            : 'border-outline-variant hover:bg-slate-50 text-slate-600'
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 text-safety-blue" />
+                        <span className="text-xs font-black">Credit Card</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('paynow')}
+                        className={`p-3.5 rounded-xl border flex flex-col items-center gap-1.5 transition-all text-center cursor-pointer ${
+                          paymentMethod === 'paynow'
+                            ? 'border-2 border-primary bg-primary/5 text-primary'
+                            : 'border-outline-variant hover:bg-slate-50 text-slate-600'
+                        }`}
+                      >
+                        <QrCode className="w-5 h-5 text-pink-600" />
+                        <span className="text-xs font-black">PayNow QR</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Payment Method Details */}
+                  {paymentMethod === 'card' ? (
+                    <div className="space-y-3 border-t border-outline-variant/50 pt-4 animate-fade-in">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block">Card Number</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={cardNumber}
+                            onChange={(e) => setCardNumber(e.target.value)}
+                            placeholder="4000 1234 5678 9010"
+                            className="w-full bg-slate-50 border border-outline-variant rounded-lg p-2.5 text-xs font-mono font-bold text-slate-800 outline-none focus:border-slate-900"
+                          />
+                          <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase block">Cardholder Name</label>
+                        <input
+                          type="text"
+                          value={cardName}
+                          onChange={(e) => setCardName(e.target.value)}
+                          placeholder="JOHN DOE"
+                          className="w-full bg-slate-50 border border-outline-variant rounded-lg p-2.5 text-xs font-bold text-slate-800 outline-none focus:border-slate-900 uppercase"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block">Expiry Date</label>
+                          <input
+                            type="text"
+                            value={cardExpiry}
+                            onChange={(e) => setCardExpiry(e.target.value)}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            className="w-full bg-slate-50 border border-outline-variant rounded-lg p-2.5 text-xs font-mono font-bold text-slate-800 outline-none text-center focus:border-slate-900"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-500 uppercase block">CVV / CVC</label>
+                          <input
+                            type="password"
+                            value={cardCvv}
+                            onChange={(e) => setCardCvv(e.target.value)}
+                            placeholder="***"
+                            maxLength={3}
+                            className="w-full bg-slate-50 border border-outline-variant rounded-lg p-2.5 text-xs font-mono font-bold text-slate-800 outline-none text-center focus:border-slate-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 border-t border-outline-variant/50 pt-4 text-center flex flex-col items-center animate-fade-in">
+                      <div className="p-3 bg-pink-50 border-2 border-pink-100 rounded-2xl relative shadow-inner">
+                        {/* Dynamic Stylized SG QR Code */}
+                        <div className="w-40 h-40 bg-white border border-slate-200 rounded-xl p-2 flex flex-col justify-between items-center relative overflow-hidden">
+                          {/* Top row */}
+                          <div className="text-[7px] text-pink-700 font-extrabold uppercase tracking-widest leading-none">SG PayNow</div>
+                          {/* Simulated QR block visual */}
+                          <div className="w-32 h-32 opacity-85 flex flex-col gap-1 items-center justify-center p-1 bg-slate-50 rounded border border-dashed border-slate-300">
+                            <div className="grid grid-cols-4 gap-1.5 w-full h-full opacity-60">
+                              {[...Array(16)].map((_, i) => (
+                                <div key={i} className={`rounded-sm ${(i * 3 + 1) % 4 === 0 || (i * 2 + 5) % 3 === 0 ? 'bg-pink-700' : 'bg-slate-950'}`}></div>
+                              ))}
+                            </div>
+                            <div className="absolute inset-0 m-auto w-12 h-12 bg-white rounded-xl shadow border border-slate-100 flex items-center justify-center font-black text-[9px] text-pink-700 uppercase tracking-tighter">
+                              PAYNOW
+                            </div>
+                          </div>
+                          {/* Bottom line */}
+                          <span className="text-[6.5px] font-mono text-slate-400 font-bold uppercase">Ref: {Date.now().toString().slice(-6)}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-slate-800">Scan QR to Top Up Instantly</p>
+                        <p className="text-[10px] text-slate-500 max-w-xs leading-relaxed">
+                          Scan the SGQR using your DBS PayLah!, digibank, OCBC Digital, UOB TMRW, or Singpass app to perform a secure, instantaneous deposit.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsProcessingPayment(true);
+                      // Stage 1: secure connection (1s)
+                      setTimeout(() => {
+                        // Stage 2: settlement (2.2s)
+                        setTimeout(() => {
+                          setPaymentSuccess(true);
+                          // Stage 3: credit wallet (3s total)
+                          setTimeout(() => {
+                            handleTopUp(paymentAmount);
+                            setShowPaymentModal(false);
+                            setIsProcessingPayment(false);
+                            setPaymentSuccess(false);
+                          }, 1500);
+                        }, 1200);
+                      }, 1000);
+                    }}
+                    className={`w-full py-3 rounded-xl font-extrabold text-xs text-white uppercase tracking-wider cursor-pointer shadow-sm ${
+                      paymentMethod === 'card'
+                        ? 'bg-slate-900 hover:bg-slate-800'
+                        : 'bg-pink-600 hover:bg-pink-700'
+                    }`}
+                  >
+                    {paymentMethod === 'card' 
+                      ? `Authorize payment of $${paymentAmount.toFixed(2)}` 
+                      : 'Simulate PayNow Transfer Completion'
+                    }
+                  </button>
+
+                  <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono mt-2">
+                    <Shield className="w-3.5 h-3.5 text-green-500" />
+                    <span>SECURED BY 256-BIT SSL ENCRYPTION GATEWAY</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* My Bookings List Dashboard */}
       <section className="max-w-7xl mx-auto space-y-6" id="bookings-dashboard">
         <h3 className="font-display font-bold text-lg text-primary flex items-center gap-2">
@@ -821,7 +1283,14 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
 
         {bookings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="scheduled-bookings-grid">
-            {bookings.map((booking) => {
+            {[...bookings]
+              .sort((a, b) => {
+                if (a.date !== b.date) {
+                  return a.date.localeCompare(b.date);
+                }
+                return a.sessionNumber - b.sessionNumber;
+              })
+              .map((booking) => {
               const d = new Date(booking.date);
               const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
               const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

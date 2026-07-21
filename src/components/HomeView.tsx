@@ -69,70 +69,43 @@ export default function HomeView({ setView }: HomeViewProps) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-safety-blue/60 via-primary to-primary z-0"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-caution-gold/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
         
-        <div className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
-          {/* Hero text */}
-          <div className="space-y-6 text-left max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 text-caution-gold text-xs font-bold uppercase tracking-widest rounded-full border border-white/10">
-              <span className="flex h-2 w-2 rounded-full bg-caution-gold animate-ping"></span>
-              Singapore's #1 Driving Academy
-            </div>
-            
-            <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-              ComfortDelGro <br className="hidden sm:inline" />
-              <span className="text-caution-gold">Driving Centre</span>
-            </h1>
-            
-            <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-xl">
-              Empowering safe, confident, and defensive drivers in Singapore since 1997. Experience advanced simulator technology, certified professional coaches, and our sprawling multi-hectare practice circuit.
-            </p>
-
-            {/* Quick CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
-              <button
-                id="hero-enrol-cta"
-                onClick={() => setView('booking')}
-                className="bg-caution-gold text-asphalt-gray hover:bg-white hover:text-primary text-sm font-extrabold px-6 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
-              >
-                Start Your Booking
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              
-              <button
-                id="hero-explore-cta"
-                onClick={() => setView('courses')}
-                className="bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 text-sm font-semibold px-6 py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                View Available Courses
-              </button>
-            </div>
+        <div className="relative z-10 max-w-4xl mx-auto text-center flex flex-col items-center justify-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/15 text-caution-gold text-xs font-bold uppercase tracking-widest rounded-full border border-white/10 mx-auto">
+            <span className="flex h-2 w-2 rounded-full bg-caution-gold animate-ping"></span>
+            Singapore's #1 Driving Academy
           </div>
+          
+          <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight text-white">
+            ComfortDelGro <br className="hidden sm:inline" />
+            <span className="text-caution-gold">Driving Centre</span>
+          </h1>
+          
+          <p className="text-base sm:text-lg text-slate-300 leading-relaxed max-w-2xl mx-auto">
+            Empowering safe, confident, and defensive drivers in Singapore since 1997. Experience advanced simulator technology, certified professional coaches, and our sprawling multi-hectare practice circuit.
+          </p>
 
-          {/* Hero Side Graphic Card */}
-          <div className="relative w-full max-w-md bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/15 shadow-2xl flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-caution-gold tracking-widest uppercase">Live Queue Status</span>
-              <span className="text-[10px] bg-green-500/25 text-green-400 font-mono px-2 py-0.5 rounded-full border border-green-500/30">● ONLINE</span>
-            </div>
-            <div className="h-px bg-white/10"></div>
+          <p className="text-xs sm:text-sm text-caution-gold font-bold tracking-wide animate-pulse">
+            ⚡ Digital enrolments are processed in real-time. Start immediately!
+          </p>
+
+          {/* Quick CTAs */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 pt-2 w-full sm:w-auto">
+            <button
+              id="hero-enrol-cta"
+              onClick={() => setView('booking')}
+              className="bg-caution-gold text-asphalt-gray hover:bg-white hover:text-primary text-sm font-extrabold px-8 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+            >
+              Start Your Booking
+              <ArrowRight className="w-4 h-4" />
+            </button>
             
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-300 font-medium">Ubi Center Enrolment Wait-time:</span>
-                <span className="font-mono text-white font-bold">&lt; 5 mins</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-300 font-medium">BTT / FTT Test Slots Available:</span>
-                <span className="font-mono text-caution-gold font-bold">This Month</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-300 font-medium">Class 3A Simulator Wait-time:</span>
-                <span className="font-mono text-white font-bold">Instant Booking</span>
-              </div>
-            </div>
-
-            <div className="bg-white/5 p-3 rounded-lg border border-white/10 text-center text-xs text-slate-300">
-              ⚡ Digital enrolments are processed in real-time. Start immediately!
-            </div>
+            <button
+              id="hero-explore-cta"
+              onClick={() => setView('courses')}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 text-sm font-semibold px-8 py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              View Available Courses
+            </button>
           </div>
         </div>
       </section>
