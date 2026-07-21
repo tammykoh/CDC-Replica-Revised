@@ -65,8 +65,8 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
         <div className="flex justify-center gap-1.5 pt-4">
           {[
             { id: 'all', label: 'All Courses' },
-            { id: 'car', label: 'Class 3 / 3A (Cars)' },
-            { id: 'motorcycle', label: 'Motorcycles (2B/2A/2)' },
+            { id: 'car', label: 'Cars (Class 3/3A)' },
+            { id: 'motorcycle', label: 'Motorcycles (Class 2/2A/2B)' },
             { id: 'private', label: 'Private Candidates' },
           ].map((tab) => (
             <button
@@ -106,11 +106,6 @@ export default function CoursesView({ setView, setSelectedCourseId }: CoursesVie
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                
-                {/* Course Metadata Badge */}
-                <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-primary text-[10px] font-mono font-bold px-2.5 py-1 rounded-full shadow-sm">
-                  {course.code}
-                </span>
 
                 {isElite && (
                   <span className="absolute top-3 right-3 bg-caution-gold text-asphalt-gray text-[9px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm uppercase tracking-wider">

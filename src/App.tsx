@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 import HomeView from './components/HomeView';
 import CoursesView from './components/CoursesView';
 import BookingView from './components/BookingView';
-import AboutUsView from './components/AboutUsView';
+import SocialView from './components/SocialView';
 
 export default function App() {
   const [currentView, setView] = useState<string>('home');
@@ -28,8 +28,8 @@ export default function App() {
             setSelectedCourseId={setSelectedCourseId} 
           />
         );
-      case 'about':
-        return <AboutUsView />;
+      case 'social':
+        return <SocialView />;
       default:
         return <HomeView setView={setView} />;
     }

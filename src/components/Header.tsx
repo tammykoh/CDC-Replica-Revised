@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Menu, X, Compass, Calendar, Award, Phone } from 'lucide-react';
+import { Shield, Menu, X, Compass, Calendar, Award, MessageSquare } from 'lucide-react';
 
 interface HeaderProps {
   currentView: string;
@@ -13,7 +13,7 @@ export default function Header({ currentView, setView }: HeaderProps) {
     { name: 'Home', id: 'home', icon: Compass },
     { name: 'Courses', id: 'courses', icon: Award },
     { name: 'Booking', id: 'booking', icon: Calendar },
-    { name: 'About Us', id: 'about', icon: Phone },
+    { name: 'Social', id: 'social', icon: MessageSquare },
   ];
 
   return (
@@ -80,26 +80,10 @@ export default function Header({ currentView, setView }: HeaderProps) {
               );
             })}
             
-            <div className="h-6 w-px bg-outline-variant mx-2"></div>
-
-            <button 
-              id="header-cta-book"
-              onClick={() => setView('booking')}
-              className="bg-primary hover:bg-safety-blue text-white text-xs font-semibold px-4.5 py-2.5 rounded-lg shadow-sm hover:shadow-md transition-all uppercase tracking-wider cursor-pointer"
-            >
-              Book Lesson
-            </button>
           </nav>
 
           {/* Mobile menu button */}
           <div className="md:hidden flex items-center gap-2">
-            <button
-              id="mobile-cta-book"
-              onClick={() => setView('booking')}
-              className="bg-primary hover:bg-safety-blue text-white text-[11px] font-bold px-3 py-1.5 rounded-md shadow-sm transition-all uppercase tracking-wider"
-            >
-              Book
-            </button>
             <button
               id="mobile-menu-btn"
               onClick={() => setIsOpen(!isOpen)}

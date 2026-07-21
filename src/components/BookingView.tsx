@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { COURSES, INSTRUCTORS } from '../data';
 import { Booking, Course, Instructor } from '../types';
-import { Calendar, User, Clock, CheckCircle2, Shield, AlertTriangle, Trash2, Milestone, ChevronRight, RefreshCw, Layers } from 'lucide-react';
+import { Calendar, User, Clock, CheckCircle2, Shield, AlertTriangle, Trash2, Milestone, ChevronRight, RefreshCw, Layers, Wallet, Plus, ChevronDown, ChevronUp, Check, BookOpen } from 'lucide-react';
 
 interface BookingViewProps {
   selectedCourseId: string;
@@ -50,12 +50,26 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
   const [bookingStep, setBookingStep] = useState(1);
   const [cancelTarget, setCancelTarget] = useState<string | null>(null);
 
+  // Student Wallet and Lessons states
+  const [walletBalance, setWalletBalance] = useState<number>(350.00);
+  const [showLessonsList, setShowLessonsList] = useState<boolean>(false);
+  const [topUpAmount, setTopUpAmount] = useState<string>('100');
+
   // Scheduler Wizard States
   const [chosenCourseId, setChosenCourseId] = useState(selectedCourseId || COURSES[0].id);
   const [chosenPool, setChosenPool] = useState<'standard' | 'elite' | 'dedicated'>('standard');
   const [chosenDate, setChosenDate] = useState<string>(new Date(Date.now() + 86400000).toISOString().split('T')[0]); // Tomorrow
   const [chosenSession, setChosenSession] = useState<number>(3);
   const [chosenInstructorId, setChosenInstructorId] = useState<string>('');
+
+  const updateWallet = (newVal: number) => {
+    setWalletBalance(newVal);
+    localStorage.setItem('cdc_wallet_balance', newVal.toFixed(2));
+  };
+
+  const handleTopUp = (amount: number = 100) => {
+    updateWallet(walletBalance + amount);
+  };
 
   const activeCourse = COURSES.find(c => c.id === chosenCourseId) || COURSES[0];
 
@@ -89,6 +103,13 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
     } else {
       setBookings(DEFAULT_BOOKINGS);
       localStorage.setItem('cdc_bookings_data', JSON.stringify(DEFAULT_BOOKINGS));
+    }
+
+    const savedWallet = localStorage.getItem('cdc_wallet_balance');
+    if (savedWallet) {
+      setWalletBalance(parseFloat(savedWallet));
+    } else {
+      localStorage.setItem('cdc_wallet_balance', '350.00');
     }
   }, []);
 
@@ -151,6 +172,11 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
   const handleCreateBooking = () => {
     const selectedInstructor = INSTRUCTORS.find(i => i.id === chosenInstructorId) || INSTRUCTORS[0];
     
+    if (walletBalance < totalSessionFee) {
+      alert(`Insufficient funds in student wallet. Please top up your wallet first!`);
+      return;
+    }
+
     const newBooking: Booking = {
       id: `b-${Date.now()}`,
       courseId: chosenCourseId,
@@ -171,6 +197,8 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
     const updated = [newBooking, ...bookings];
     saveBookings(updated);
     
+    updateWallet(walletBalance - totalSessionFee);
+
     // Reset wizard
     setBookingStep(1);
     setShowBooker(false);
@@ -178,8 +206,14 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
   };
 
   const handleCancelBooking = (id: string) => {
+    const bookingToCancel = bookings.find(b => b.id === id);
     const updated = bookings.filter(b => b.id !== id);
     saveBookings(updated);
+    
+    if (bookingToCancel) {
+      updateWallet(walletBalance + bookingToCancel.totalFee);
+    }
+    
     setCancelTarget(null);
   };
 
@@ -210,35 +244,128 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
         </div>
 
         {/* Curricular Progress Meter (Bento Box style) */}
-        <div className="bg-white border border-outline-variant rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-8" id="progress-meter">
-          {/* Progress Bar 1 */}
-          <div className="space-y-4">
+        <div className="bg-white border border-outline-variant rounded-2xl p-6 shadow-sm grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8" id="progress-meter">
+          {/* Card 1: Student Wallet */}
+          <div className="space-y-4 flex flex-col justify-between" id="wallet-progress-card">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-xs font-bold">
+                <span className="text-primary flex items-center gap-1.5">
+                  <Wallet className="w-4 h-4 text-safety-blue" />
+                  Student Wallet
+                </span>
+                <span className="text-[9px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">ACTIVE</span>
+              </div>
+              <div className="bg-surface-mist/75 rounded-xl p-3 border border-outline-variant/60">
+                <span className="text-[10px] text-on-surface-variant block uppercase tracking-wider font-semibold">Available Funds</span>
+                <span className="text-2xl font-black text-primary font-mono block mt-1">${walletBalance.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider block">Custom Top Up Amount</label>
+              <div className="flex gap-1.5">
+                <div className="relative flex-grow">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant font-mono">$</span>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="100"
+                    value={topUpAmount}
+                    onChange={(e) => setTopUpAmount(e.target.value)}
+                    className="w-full bg-surface-mist border border-outline-variant rounded-lg pl-6 pr-2 py-1.5 text-xs font-mono font-bold text-primary focus:outline-none focus:border-safety-blue"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    const val = parseFloat(topUpAmount);
+                    if (!isNaN(val) && val > 0) {
+                      handleTopUp(val);
+                    } else {
+                      alert('Please enter a valid amount.');
+                    }
+                  }}
+                  className="bg-primary hover:bg-safety-blue text-white text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition-all flex items-center justify-center gap-1 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 text-caution-gold" />
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Practical Milestones */}
+          <div className="space-y-3 lg:border-l lg:border-outline-variant/60 lg:pl-6" id="practical-progress-card">
             <div className="flex justify-between items-center text-xs font-bold">
               <span className="text-primary flex items-center gap-1.5">
                 <Milestone className="w-4 h-4 text-safety-blue" />
                 Practical Milestones
               </span>
-              <span className="font-mono text-slate-500">14 / 22 Lessons Passed</span>
+              <span className="font-mono text-slate-500">14 / 22 Passed</span>
             </div>
             
-            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-1.5">
               <div className="h-full bg-safety-blue rounded-full" style={{ width: '63.6%' }}></div>
             </div>
 
-            <div className="flex justify-between text-[10px] text-slate-500">
+            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
               <span>Stage 1: Passed</span>
               <span className="font-bold text-primary">Stage 2: Ongoing (Lesson 15)</span>
             </div>
+
+            <div className="pt-2 border-t border-outline-variant/50">
+              <div className="flex justify-between text-[11px] font-medium">
+                <span className="text-green-600 font-bold">Passed: 14 lessons</span>
+                <span className="text-primary font-bold">Pending: 8 lessons</span>
+              </div>
+              <button 
+                onClick={() => setShowLessonsList(!showLessonsList)}
+                className="mt-2 text-[10px] font-extrabold text-safety-blue hover:text-primary flex items-center gap-1 cursor-pointer"
+              >
+                <BookOpen className="w-3 h-3" />
+                {showLessonsList ? 'Hide Lesson Details ▲' : 'Show Lesson Details ▼'}
+              </button>
+
+              {showLessonsList && (
+                <div className="mt-3 border border-outline-variant/60 rounded-xl p-2.5 bg-slate-50/50 space-y-2 max-h-60 overflow-y-auto pr-1 animate-fade-in" id="lessons-compact-list">
+                  {[
+                    { name: 'Vehicle Controls & Familiarisation', desc: 'Starting, moving off, blind spot checks, clutch biting point, steering grip and coordination.', status: 'PASSED' },
+                    { name: 'Basic Traffic & Turns', desc: 'Left and right turn angles, positioning, scanning distances, changing lanes, speed deceleration.', status: 'PASSED' },
+                    { name: 'Circuit Obstacles Part 1', desc: 'Slope climbing and hill starts, pedestrian zebra crossing regulations, directional changes.', status: 'PASSED' },
+                    { name: 'Parking & S-Course Intro', desc: 'Reverse vertical parking, alignment references, driving slowly into curves.', status: 'PASSED' },
+                    { name: 'Narrow Courses & Precision Turning', desc: 'Crank course, narrow S-course navigation without hitting kerbs, mounting prevention techniques.', status: 'PENDING' },
+                    { name: 'Parallel Parking & Emergency Brake', desc: 'Entering parallel slots, safety hazard reaction time, rapid emergency halting.', status: 'PENDING' },
+                    { name: 'Road Test Outing & Advanced Lane Merging', desc: 'Singapore public road driving routes, speed management, heavy vehicle overtaking safety.', status: 'PENDING' },
+                    { name: 'Final TP Mock Evaluation', desc: 'Complete circuit and public road simulator evaluation matching standard Traffic Police criteria.', status: 'PENDING' }
+                  ].map((item, idx) => (
+                    <div key={idx} className={`p-2 rounded border text-xs ${
+                      item.status === 'PASSED' 
+                        ? 'bg-green-50/50 border-green-100/80 text-green-800' 
+                        : 'bg-white border-outline-variant/50 text-slate-700'
+                    }`}>
+                      <div className="flex justify-between items-start gap-1 font-bold mb-1">
+                        <span className="text-[11px] leading-tight text-primary">{item.name}</span>
+                        <span className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 font-black ${
+                          item.status === 'PASSED' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-on-surface-variant leading-relaxed font-normal">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Progress Bar 2 */}
-          <div className="space-y-4 border-y md:border-y-0 md:border-x border-outline-variant/60 py-4 md:py-0 md:px-6">
+          {/* Card 3: Simulator Compliance */}
+          <div className="space-y-4 border-y md:border-y-0 lg:border-l border-outline-variant/60 py-4 md:py-0 lg:px-6" id="simulator-progress-card">
             <div className="flex justify-between items-center text-xs font-bold">
               <span className="text-primary flex items-center gap-1.5">
                 <Layers className="w-4 h-4 text-safety-blue" />
                 Simulator Compliance
               </span>
-              <span className="font-mono text-slate-500">2 / 3 Sessions Completed</span>
+              <span className="font-mono text-slate-500">2 / 3 Completed</span>
             </div>
             
             <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
@@ -251,21 +378,21 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
             </div>
           </div>
 
-          {/* Progress Exams */}
-          <div className="flex flex-col justify-between">
-            <span className="block text-xs font-bold text-primary mb-2">Theory & Visual Tests Status</span>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-green-50 border border-green-200 text-center py-2 px-1.5 rounded-lg">
+          {/* Card 4: Progress Exams */}
+          <div className="flex flex-col justify-between lg:border-l lg:border-outline-variant/60 lg:pl-6" id="exams-progress-card">
+            <span className="block text-xs font-bold text-primary mb-2.5">Theory & Visual Tests Status</span>
+            <div className="grid grid-cols-3 gap-1.5">
+              <div className="bg-green-50 border border-green-200 text-center py-2 px-1.5 rounded-lg flex flex-col justify-between h-14">
+                <span className="text-[9px] text-green-700 font-bold uppercase block">Eyesight</span>
+                <span className="text-[10px] text-green-800 font-bold font-mono">PASSED</span>
+              </div>
+              <div className="bg-green-50 border border-green-200 text-center py-2 px-1.5 rounded-lg flex flex-col justify-between h-14">
                 <span className="text-[9px] text-green-700 font-bold uppercase block">BTT Exam</span>
                 <span className="text-[10px] text-green-800 font-bold font-mono">PASSED</span>
               </div>
-              <div className="bg-green-50 border border-green-200 text-center py-2 px-1.5 rounded-lg">
+              <div className="bg-green-50 border border-green-200 text-center py-2 px-1.5 rounded-lg flex flex-col justify-between h-14">
                 <span className="text-[9px] text-green-700 font-bold uppercase block">FTT Exam</span>
                 <span className="text-[10px] text-green-800 font-bold font-mono">PASSED</span>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 text-center py-2 px-1.5 rounded-lg">
-                <span className="text-[9px] text-blue-700 font-bold uppercase block">Eyesight</span>
-                <span className="text-[10px] text-blue-800 font-bold font-mono">COMPLETED</span>
               </div>
             </div>
           </div>
@@ -586,6 +713,15 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                     </div>
                   </div>
 
+                  {walletBalance < totalSessionFee && (
+                    <div className="bg-red-50 border border-red-200 text-red-800 p-3.5 rounded-lg text-xs flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Insufficient wallet balance:</strong> You have ${walletBalance.toFixed(2)} but this lesson requires ${totalSessionFee.toFixed(2)}. Please top up your student wallet.
+                      </span>
+                    </div>
+                  )}
+
                   <div className="text-[10px] text-slate-500 bg-amber-50 p-3 rounded-lg border border-amber-200 flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <span>Cancellation Policy: Cancellations are fully refundable up to 48 hours before session start. Late actions forfeit the lesson credit.</span>
@@ -618,13 +754,29 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId }: B
                   Continue
                 </button>
               ) : (
-                <button
-                  id="wizard-confirm-btn"
-                  onClick={handleCreateBooking}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs font-extrabold px-6 py-2.5 rounded-lg transition-colors shadow-sm cursor-pointer uppercase tracking-wider"
-                >
-                  Confirm & Schedule Slot
-                </button>
+                <div className="flex gap-2">
+                  {walletBalance < totalSessionFee && (
+                    <button
+                      onClick={handleTopUp}
+                      className="bg-caution-gold hover:bg-yellow-500 text-asphalt-gray text-xs font-bold px-4 py-2.5 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Quick Top Up $100
+                    </button>
+                  )}
+                  <button
+                    id="wizard-confirm-btn"
+                    disabled={walletBalance < totalSessionFee}
+                    onClick={handleCreateBooking}
+                    className={`text-white text-xs font-extrabold px-6 py-2.5 rounded-lg transition-colors shadow-sm uppercase tracking-wider ${
+                      walletBalance < totalSessionFee
+                        ? 'bg-slate-300 cursor-not-allowed'
+                        : 'bg-green-600 hover:bg-green-700 cursor-pointer'
+                    }`}
+                  >
+                    Confirm & Schedule Slot
+                  </button>
+                </div>
               )}
             </div>
           </div>
