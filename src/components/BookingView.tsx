@@ -410,7 +410,6 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                   <Wallet className="w-4 h-4 text-safety-blue" />
                   Student Wallet
                 </span>
-                <span className="text-[9px] font-bold bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">ACTIVE</span>
               </div>
               <div className="bg-surface-mist/75 rounded-xl p-3 border border-outline-variant/60">
                 <span className="text-[10px] text-on-surface-variant block uppercase tracking-wider font-semibold">Available Funds</span>

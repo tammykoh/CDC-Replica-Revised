@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, Award, Shield, Users, Clock, ArrowRight, Search, ChevronDown, ChevronUp, MapPin } from 'lucide-react';
+import { Compass, Award, Shield, Users, Clock, ArrowRight, Search, ChevronDown, ChevronUp, MapPin, MessageSquare, X, CheckCircle, Loader2 } from 'lucide-react';
 import { FAQ_ITEMS } from '../data';
 
 interface HomeViewProps {
@@ -10,6 +10,10 @@ export default function HomeView({ setView }: HomeViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
   const [faqCategory, setFaqCategory] = useState<string>('all');
+  const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
+  const [enquiryForm, setEnquiryForm] = useState({ name: '', contact: '', question: '' });
+  const [enquirySubmitted, setEnquirySubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const stats = [
     { label: 'First-Time Pass Rate', value: '64.8%', description: 'Significantly higher than national average', icon: Award, color: 'text-safety-blue bg-primary-fixed/20' },
@@ -97,6 +101,15 @@ export default function HomeView({ setView }: HomeViewProps) {
             >
               Enrol Now
               <ArrowRight className="w-4 h-4" />
+            </button>
+            
+            <button
+              id="hero-enquiry-cta"
+              onClick={() => setIsEnquiryOpen(true)}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 text-sm font-semibold px-8 py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+            >
+              <MessageSquare className="w-4 h-4 text-caution-gold" />
+              Make Enquiry
             </button>
           </div>
         </div>
@@ -336,6 +349,136 @@ export default function HomeView({ setView }: HomeViewProps) {
           )}
         </div>
       </section>
+
+      {/* Enquiry Modal Overlay */}
+      {isEnquiryOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" id="enquiry-modal-overlay">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-100 relative animate-scale-up animate-duration-200" id="enquiry-modal-content">
+            {/* Header */}
+            <div className="bg-primary text-white px-6 py-5 flex justify-between items-center relative">
+              <div>
+                <h3 className="font-display font-extrabold text-base flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-caution-gold" />
+                  CDC Course Enquiry
+                </h3>
+                <p className="text-[10px] text-slate-300 mt-0.5 font-medium">Have questions? Send us a message and we'll reply shortly.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsEnquiryOpen(false);
+                  setEnquirySubmitted(false);
+                  setEnquiryForm({ name: '', contact: '', question: '' });
+                }}
+                className="text-white/80 hover:text-white bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-all cursor-pointer"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6">
+              {enquirySubmitted ? (
+                <div className="text-center py-6 space-y-4 animate-fade-in">
+                  <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border border-emerald-100">
+                    <CheckCircle className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-extrabold text-primary text-sm">Enquiry Submitted Successfully!</h4>
+                    <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">
+                      Thank you for contacting ComfortDelGro Driving Centre, <span className="font-bold text-primary">{enquiryForm.name}</span>.<br />
+                      Our support officer will reach out to you at <span className="font-mono font-semibold text-primary">{enquiryForm.contact}</span> within 1-2 working days.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsEnquiryOpen(false);
+                      setEnquirySubmitted(false);
+                      setEnquiryForm({ name: '', contact: '', question: '' });
+                    }}
+                    className="mt-2 w-full bg-primary hover:bg-safety-blue text-white text-xs font-bold py-2.5 rounded-xl transition-all uppercase tracking-wider cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setIsSubmitting(true);
+                    setTimeout(() => {
+                      setIsSubmitting(false);
+                      setEnquirySubmitted(true);
+                    }, 1200);
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="space-y-1">
+                    <label htmlFor="enquiry-name" className="text-[10px] uppercase tracking-wider font-black text-on-surface-variant block">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="enquiry-name"
+                      type="text"
+                      required
+                      placeholder="e.g. Alexis Tan"
+                      value={enquiryForm.name}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, name: e.target.value })}
+                      className="w-full bg-surface-mist border border-outline-variant rounded-xl px-3.5 py-2.5 text-xs font-medium text-primary focus:outline-none focus:border-safety-blue focus:ring-1 focus:ring-safety-blue"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label htmlFor="enquiry-contact" className="text-[10px] uppercase tracking-wider font-black text-on-surface-variant block">
+                      Contact Information <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="enquiry-contact"
+                      type="text"
+                      required
+                      placeholder="e.g. alexis@gmail.com or 9876 5432"
+                      value={enquiryForm.contact}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, contact: e.target.value })}
+                      className="w-full bg-surface-mist border border-outline-variant rounded-xl px-3.5 py-2.5 text-xs font-medium text-primary focus:outline-none focus:border-safety-blue focus:ring-1 focus:ring-safety-blue"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label htmlFor="enquiry-question" className="text-[10px] uppercase tracking-wider font-black text-on-surface-variant block">
+                      Your Question / Inquiry <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="enquiry-question"
+                      required
+                      rows={4}
+                      placeholder="e.g. I would like to enquire about Class 3A mock test availability during weekends..."
+                      value={enquiryForm.question}
+                      onChange={(e) => setEnquiryForm({ ...enquiryForm, question: e.target.value })}
+                      className="w-full bg-surface-mist border border-outline-variant rounded-xl px-3.5 py-2.5 text-xs font-medium text-primary focus:outline-none focus:border-safety-blue focus:ring-1 focus:ring-safety-blue resize-none"
+                    ></textarea>
+                  </div>
+
+                  <button
+                    id="enquiry-submit-btn"
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-primary hover:bg-safety-blue disabled:bg-slate-300 text-white text-xs font-extrabold py-3 rounded-xl transition-all uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 mt-2"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Submitting Enquiry...
+                      </>
+                    ) : (
+                      'Submit Enquiry'
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
