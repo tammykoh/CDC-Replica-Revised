@@ -14,7 +14,12 @@ export default function App() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Filter out class-2b to unenrol the user as requested
+          const filtered = parsed.filter(id => id !== 'class-2b');
+          localStorage.setItem('cdc_enrolled_courses', JSON.stringify(filtered));
+          return filtered.length > 0 ? filtered : ['class-3a'];
+        }
       } catch (e) {}
     }
     return ['class-3a']; // Default enrollment matching the mock bookings

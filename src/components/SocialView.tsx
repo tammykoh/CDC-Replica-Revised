@@ -41,9 +41,6 @@ export default function SocialView() {
         <h2 className="text-xl font-display font-black text-primary leading-tight">
           CDC Driving School Portal Feedback
         </h2>
-        <p className="text-xs text-on-surface-variant leading-relaxed">
-          Connect with fellow student drivers, share tips on passing the practical test, ask about simulator lessons, or share driving study guides.
-        </p>
       </div>
 
       {/* Embedded Disqus Thread */}

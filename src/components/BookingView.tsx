@@ -3,6 +3,62 @@ import { COURSES, INSTRUCTORS } from '../data';
 import { Booking, Course, Instructor } from '../types';
 import { Calendar, User, Clock, CheckCircle2, Shield, AlertTriangle, Trash2, Milestone, ChevronRight, RefreshCw, Layers, Wallet, Plus, ChevronDown, ChevronUp, Check, BookOpen, CreditCard, QrCode, Loader2 } from 'lucide-react';
 
+const COURSE_LESSONS_MAP: Record<string, { name: string; desc: string; status: 'Completed' | 'In Progress' | 'Incomplete' }[]> = {
+  'class-3a': [
+    { name: 'Vehicle Controls & Familiarisation', desc: 'Starting, moving off, blind spot checks, clutch biting point, steering grip and coordination.', status: 'Completed' },
+    { name: 'Basic Traffic & Turns', desc: 'Left and right turn angles, positioning, scanning distances, changing lanes, speed deceleration.', status: 'Completed' },
+    { name: 'Circuit Obstacles Part 1', desc: 'Slope climbing and hill starts, pedestrian zebra crossing regulations, directional changes.', status: 'Completed' },
+    { name: 'Parking & S-Course Intro', desc: 'Reverse vertical parking, alignment references, driving slowly into curves.', status: 'Completed' },
+    { name: 'Narrow Courses & Precision Turning', desc: 'Crank course, narrow S-course navigation without hitting kerbs, mounting prevention techniques.', status: 'In Progress' },
+    { name: 'Parallel Parking & Emergency Brake', desc: 'Entering parallel slots, safety hazard reaction time, rapid emergency halting.', status: 'Incomplete' },
+    { name: 'Road Test Outing & Advanced Lane Merging', desc: 'Singapore public road driving routes, speed management, heavy vehicle overtaking safety.', status: 'Incomplete' },
+    { name: 'Final TP Mock Evaluation', desc: 'Complete circuit and public road simulator evaluation matching standard Traffic Police criteria.', status: 'Incomplete' }
+  ],
+  'class-3': [
+    { name: 'Manual Controls & Clutch Coordination', desc: 'Clutch biting point, gear shifting 1 to 4, smooth downshifting, double clutch practice.', status: 'Completed' },
+    { name: 'Slope climbing & Friction Point', desc: 'Stopping on step slopes and moving off without sliding back using handbrake control.', status: 'Completed' },
+    { name: 'Narrow S-Course & Crank Course', desc: 'Navigating sharp, narrow curves, adjusting steering ratios, tire alignment visual guides.', status: 'In Progress' },
+    { name: 'Directional Changes & Parking', desc: 'Reverse parking and three-point turn inside a box space, avoiding kerbs.', status: 'Incomplete' },
+    { name: 'Public Road Gear Management', desc: 'Driving manual car on public roads, shifting gears appropriately to match traffic speed.', status: 'Incomplete' },
+    { name: 'TP Final Mock Assessment', desc: 'Official mock driving test under strict conditions.', status: 'Incomplete' }
+  ],
+  'elite-3a': [
+    { name: 'VIP Vehicle Handover & Cockpit Layout', desc: 'Lexus cockpit configuration, memory seats adjustment, hybrid power modes coaching.', status: 'Completed' },
+    { name: 'Premium Circuit Practice', desc: 'Mastering the CDC circuit tracks using premium driver assistance systems.', status: 'Completed' },
+    { name: 'Interactive S-Course Precision', desc: 'Sensor-assisted parking, bird-eye-view camera alignment, steering wheel sensory feedback.', status: 'Completed' },
+    { name: 'Priority Road Excursion', desc: 'High-speed expressway merges, dynamic lane control, defensive hazard anticipation.', status: 'In Progress' },
+    { name: 'Mock Practical TP Examination', desc: 'Simulated official test with comprehensive direct performance feedback reports.', status: 'Incomplete' }
+  ],
+  'class-2b': [
+    { name: 'Motorcycle Familiarization & Balance', desc: 'Getting on/off bike, throttle control, standard first gear clutch release, manual engine cutoff.', status: 'Completed' },
+    { name: 'Figure-8 & Slalom Balance', desc: 'Cornering body posture, weight leaning, timing steering through continuous pylon slaloms.', status: 'Completed' },
+    { name: 'Balance Plank & Pylon Slalom (Narrow)', desc: 'Riding slowly on elevated narrow concrete plank for 6+ seconds, precise throttle-brake balance.', status: 'In Progress' },
+    { name: 'Emergency Stop & ABS Braking', desc: 'Halting vehicle instantly from 30km/h inside designated boundaries on wet/dry lanes.', status: 'Incomplete' },
+    { name: 'Road Rules & Junction Turns', desc: 'Proper traffic checks, defensive positioning on 2-lane roads, lane signals.', status: 'Incomplete' },
+    { name: 'Final Practical Assessment', desc: 'Comprehensive simulator and actual circuit motorcycle test evaluation.', status: 'Incomplete' }
+  ],
+  'class-2a': [
+    { name: 'Intermediate Engine Power Handling', desc: 'Riding 201cc-400cc machines, power delivery curves, throttle sensitivity training.', status: 'Completed' },
+    { name: 'Elevated Plank Slow Balance', desc: 'Sustained slow riding on narrow plank for 8+ seconds, rear brake slipping method.', status: 'Completed' },
+    { name: 'Emergency Braking from 40km/h', desc: 'Rapid downshifting and safe double-lever halting within strict distance limits.', status: 'In Progress' },
+    { name: 'Bumpy Road & Slalom Timing', desc: 'Continuous riding on rough tracks, shock absorbing postures, rapid slalom under 6 seconds.', status: 'Incomplete' },
+    { name: 'Public Expressway Defensive Navigation', desc: 'High speed lane positioning, buffer zones creation, crosswind stabilization.', status: 'Incomplete' }
+  ],
+  'class-2': [
+    { name: 'Heavy Superbike Center-stand & Weight', desc: 'Handling 400cc+ bikes, center-stand lifting techniques, recovery of fallen heavy vehicle.', status: 'Completed' },
+    { name: 'Plank Balance for 10+ Seconds', desc: 'Ultra-slow speed balance control using clutch friction zone, rear brake drag.', status: 'Completed' },
+    { name: 'High-speed Swerve & Hazard Avoidance', desc: 'Rapid lane change maneuver at 50km/h to avoid instant popup simulator obstacles.', status: 'Completed' },
+    { name: 'Emergency Braking from 50km/h', desc: 'Halting massive momentum superbike with front and rear distribution safely.', status: 'In Progress' },
+    { name: 'Advanced Circuit & Public Road Mastery', desc: 'Final evaluation matching Traffic Police standard Class 2 licensing exam criteria.', status: 'Incomplete' }
+  ],
+  'private-3a': [
+    { name: 'Private Route Navigation Introduction', desc: 'Understanding standard test routes around Ubi, common mistake spots.', status: 'Completed' },
+    { name: 'CDC Circuit Rental Familiarity', desc: 'S-course and Crank course entry alignments, slope starting rules for private candidates.', status: 'Completed' },
+    { name: 'Mock Practical Assessment Round 1', desc: 'Simulated circuit test conducted by official CDC examiner for private candidates.', status: 'In Progress' },
+    { name: 'Mock Practical Assessment Round 2', desc: 'Public road mock evaluation of major private test routes with score sheet logging.', status: 'Incomplete' }
+  ]
+};
+
 interface BookingViewProps {
   selectedCourseId: string;
   setSelectedCourseId: (courseId: string) => void;
@@ -93,6 +149,24 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
   const handleTopUp = (amount: number = 100) => {
     updateWallet(walletBalance + amount);
   };
+
+  const [milestoneCourseId, setMilestoneCourseId] = useState<string>(() => {
+    if (selectedCourseId && enrolledCourseIds.includes(selectedCourseId)) return selectedCourseId;
+    return enrolledCourseIds[0] || 'class-3a';
+  });
+
+  useEffect(() => {
+    if (selectedCourseId && enrolledCourseIds.includes(selectedCourseId)) {
+      setMilestoneCourseId(selectedCourseId);
+    } else if (enrolledCourseIds.length > 0 && !enrolledCourseIds.includes(milestoneCourseId)) {
+      setMilestoneCourseId(enrolledCourseIds[0]);
+    }
+  }, [selectedCourseId, enrolledCourseIds]);
+
+  // Auto scroll to top when BookingView loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const activeCourse = COURSES.find(c => c.id === chosenCourseId) || COURSES[0];
   const enrolledCourses = COURSES.filter(c => enrolledCourseIds.includes(c.id));
@@ -381,64 +455,92 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
 
           {/* Card 2: Practical Milestones */}
           <div className="space-y-3 lg:border-l lg:border-outline-variant/60 lg:pl-6" id="practical-progress-card">
-            <div className="flex justify-between items-center text-xs font-bold">
-              <span className="text-primary flex items-center gap-1.5">
-                <Milestone className="w-4 h-4 text-safety-blue" />
-                Practical Milestones
-              </span>
-              <span className="font-mono text-slate-500">63.6% Completed</span>
-            </div>
-            
-            <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-1.5">
-              <div className="h-full bg-safety-blue rounded-full" style={{ width: '63.6%' }}></div>
-            </div>
+            {(() => {
+              const currentLessons = COURSE_LESSONS_MAP[milestoneCourseId] || COURSE_LESSONS_MAP['class-3a'];
+              const completedCount = currentLessons.filter(l => l.status === 'Completed').length;
+              const progressPercent = Math.round((completedCount / currentLessons.length) * 100);
+              
+              return (
+                <>
+                  <div className="flex justify-between items-center text-xs font-bold">
+                    <span className="text-primary flex items-center gap-1.5">
+                      <Milestone className="w-4 h-4 text-safety-blue" />
+                      Practical Milestones
+                    </span>
+                    <span className="font-mono text-slate-500">{progressPercent}% Completed</span>
+                  </div>
 
-            <div className="pt-2">
-              <button 
-                onClick={() => setShowLessonsList(!showLessonsList)}
-                className="mt-2 text-[10px] font-extrabold text-safety-blue hover:text-primary flex items-center gap-1 cursor-pointer"
-              >
-                <BookOpen className="w-3 h-3" />
-                {showLessonsList ? 'Hide Lesson Details ▲' : 'Show Lesson Details ▼'}
-              </button>
-
-              {showLessonsList && (
-                <div className="mt-3 border border-outline-variant/60 rounded-xl p-2.5 bg-slate-50/50 space-y-2 max-h-60 overflow-y-auto pr-1 animate-fade-in" id="lessons-compact-list">
-                  {[
-                    { name: 'Vehicle Controls & Familiarisation', desc: 'Starting, moving off, blind spot checks, clutch biting point, steering grip and coordination.', status: 'Completed' },
-                    { name: 'Basic Traffic & Turns', desc: 'Left and right turn angles, positioning, scanning distances, changing lanes, speed deceleration.', status: 'Completed' },
-                    { name: 'Circuit Obstacles Part 1', desc: 'Slope climbing and hill starts, pedestrian zebra crossing regulations, directional changes.', status: 'Completed' },
-                    { name: 'Parking & S-Course Intro', desc: 'Reverse vertical parking, alignment references, driving slowly into curves.', status: 'Completed' },
-                    { name: 'Narrow Courses & Precision Turning', desc: 'Crank course, narrow S-course navigation without hitting kerbs, mounting prevention techniques.', status: 'In Progress' },
-                    { name: 'Parallel Parking & Emergency Brake', desc: 'Entering parallel slots, safety hazard reaction time, rapid emergency halting.', status: 'Incomplete' },
-                    { name: 'Road Test Outing & Advanced Lane Merging', desc: 'Singapore public road driving routes, speed management, heavy vehicle overtaking safety.', status: 'Incomplete' },
-                    { name: 'Final TP Mock Evaluation', desc: 'Complete circuit and public road simulator evaluation matching standard Traffic Police criteria.', status: 'Incomplete' }
-                  ].map((item, idx) => (
-                    <div key={idx} className={`p-2 rounded border text-xs ${
-                      item.status === 'Completed' 
-                        ? 'bg-green-50/50 border-green-100/80 text-green-800' 
-                        : item.status === 'In Progress'
-                          ? 'bg-yellow-50/60 border-yellow-200/80 text-yellow-800'
-                          : 'bg-white border-outline-variant/50 text-slate-500'
-                    }`}>
-                      <div className="flex justify-between items-start gap-1 font-bold mb-1">
-                        <span className="text-[11px] leading-tight text-primary">{item.name}</span>
-                        <span className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 font-black ${
-                          item.status === 'Completed' 
-                            ? 'bg-green-100 text-green-800' 
-                            : item.status === 'In Progress'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {item.status}
-                        </span>
+                  {enrolledCourses.length > 1 && (
+                    <div className="space-y-1.5 mt-2">
+                      <span className="text-[9px] uppercase tracking-wider font-black text-on-surface-variant block">
+                        Course Milestones:
+                      </span>
+                      <div className="flex flex-wrap gap-1 p-1 bg-slate-100 rounded-lg border border-slate-200">
+                        {enrolledCourses.map((c) => {
+                          const isActive = milestoneCourseId === c.id;
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setMilestoneCourseId(c.id)}
+                              className={`flex-1 min-w-[70px] text-center text-[10px] font-extrabold py-1 px-2 rounded-md transition-all cursor-pointer ${
+                                isActive
+                                  ? 'bg-white text-primary shadow-sm border border-slate-200/50'
+                                  : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
+                              }`}
+                            >
+                              {c.code}
+                            </button>
+                          );
+                        })}
                       </div>
-                      <p className="text-[10px] text-on-surface-variant leading-relaxed font-normal">{item.desc}</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  )}
+                  
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mt-1.5">
+                    <div className="h-full bg-safety-blue rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }}></div>
+                  </div>
+
+                  <div className="pt-2">
+                    <button 
+                      onClick={() => setShowLessonsList(!showLessonsList)}
+                      className="mt-2 text-[10px] font-extrabold text-safety-blue hover:text-primary flex items-center gap-1 cursor-pointer"
+                    >
+                      <BookOpen className="w-3 h-3" />
+                      {showLessonsList ? 'Hide Lesson Details ▲' : 'Show Lesson Details ▼'}
+                    </button>
+
+                    {showLessonsList && (
+                      <div className="mt-3 border border-outline-variant/60 rounded-xl p-2.5 bg-slate-50/50 space-y-2 max-h-60 overflow-y-auto pr-1 animate-fade-in" id="lessons-compact-list">
+                        {currentLessons.map((item, idx) => (
+                          <div key={idx} className={`p-2 rounded border text-xs ${
+                            item.status === 'Completed' 
+                              ? 'bg-green-50/50 border-green-100/80 text-green-800' 
+                              : item.status === 'In Progress'
+                                ? 'bg-yellow-50/60 border-yellow-200/80 text-yellow-800'
+                                : 'bg-white border-outline-variant/50 text-slate-500'
+                          }`}>
+                            <div className="flex justify-between items-start gap-1 font-bold mb-1">
+                              <span className="text-[11px] leading-tight text-primary">{item.name}</span>
+                              <span className={`text-[8px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 font-black ${
+                                item.status === 'Completed' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : item.status === 'In Progress'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {item.status}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-on-surface-variant leading-relaxed font-normal">{item.desc}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Card 3: Simulator Compliance */}

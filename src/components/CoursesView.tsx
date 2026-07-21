@@ -292,21 +292,11 @@ export default function CoursesView({ setView, setSelectedCourseId, enrolledCour
             {/* Simulators selection */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-xs font-bold">
-                <label htmlFor="simulators-slider" className="text-on-surface">Compulsory Simulator Training:</label>
+                <span className="text-on-surface">Simulator Training:</span>
                 <span className="font-mono text-primary bg-primary-fixed/20 px-2 py-0.5 rounded text-xs">{simulatorsCount} sessions</span>
               </div>
-              <input
-                id="simulators-slider"
-                type="range"
-                min="0"
-                max="3"
-                value={simulatorsCount}
-                onChange={(e) => setSimulatorsCount(parseInt(e.target.value))}
-                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-primary"
-              />
-              <div className="flex justify-between text-[10px] text-slate-400 font-medium">
-                <span>0 sessions</span>
-                <span>LTA compulsory requirement: 3 sessions</span>
+              <div className="text-[11px] text-slate-500 font-semibold bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                LTA compulsory requirement: 3 sessions
               </div>
             </div>
 
