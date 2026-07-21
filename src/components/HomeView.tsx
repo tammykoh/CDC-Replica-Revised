@@ -92,19 +92,11 @@ export default function HomeView({ setView }: HomeViewProps) {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-4 pt-2 w-full sm:w-auto">
             <button
               id="hero-enrol-cta"
-              onClick={() => setView('booking')}
+              onClick={() => setView('courses')}
               className="bg-caution-gold text-asphalt-gray hover:bg-white hover:text-primary text-sm font-extrabold px-8 py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
             >
-              Start Your Booking
+              Enrol Now
               <ArrowRight className="w-4 h-4" />
-            </button>
-            
-            <button
-              id="hero-explore-cta"
-              onClick={() => setView('courses')}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 hover:border-white/40 text-sm font-semibold px-8 py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              View Available Courses
             </button>
           </div>
         </div>

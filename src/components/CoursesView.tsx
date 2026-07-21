@@ -393,9 +393,20 @@ export default function CoursesView({ setView, setSelectedCourseId, enrolledCour
             <button
               id="calc-enrol-cta"
               onClick={() => handleEnrolClick(calcCourseId)}
-              className="w-full bg-primary hover:bg-safety-blue text-white text-xs font-bold py-3 rounded-xl transition-all uppercase tracking-wider cursor-pointer"
+              className={`w-full text-xs font-extrabold py-3 rounded-xl transition-all uppercase tracking-wider cursor-pointer text-center ${
+                enrolledCourseIds.includes(calcCourseId)
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                  : 'bg-primary hover:bg-safety-blue text-white'
+              }`}
             >
-              Enrol In This Program Now
+              {enrolledCourseIds.includes(calcCourseId) ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Check className="w-4 h-4 text-emerald-100 shrink-0" />
+                  Enrolled - Book Now
+                </span>
+              ) : (
+                'Enrol In This Program Now'
+              )}
             </button>
           </div>
         </div>
