@@ -101,6 +101,47 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
     b => b.date === chosenDate && b.sessionNumber === chosenSession && b.status === 'scheduled'
   );
 
+  const getSessionStartTime = (sessionNum: number): { hour: number; minute: number } => {
+    switch (sessionNum) {
+      case 1: return { hour: 8, minute: 30 };
+      case 2: return { hour: 10, minute: 20 };
+      case 3: return { hour: 12, minute: 45 };
+      case 4: return { hour: 14, minute: 35 };
+      case 5: return { hour: 16, minute: 45 };
+      case 6: return { hour: 18, minute: 45 };
+      case 7: return { hour: 20, minute: 30 };
+      default: return { hour: 12, minute: 45 };
+    }
+  };
+
+  const isSessionPassed = (dateStr: string, sessionNum: number) => {
+    if (!dateStr) return false;
+    
+    const now = new Date();
+    
+    // Format today's date in YYYY-MM-DD local time
+    const todayStr = now.getFullYear() + '-' + 
+                     String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(now.getDate()).padStart(2, '0');
+                     
+    // If the selected date is in the past
+    if (dateStr < todayStr) {
+      return true;
+    }
+    
+    // If the selected date is today, check the time
+    if (dateStr === todayStr) {
+      const { hour, minute } = getSessionStartTime(sessionNum);
+      const sessionTime = new Date(now);
+      sessionTime.setHours(hour, minute, 0, 0);
+      return now >= sessionTime;
+    }
+    
+    return false;
+  };
+
+  const currentSelectionIsPassed = isSessionPassed(chosenDate, chosenSession);
+
   // CDC Standard Driving Sessions
   const CDC_SESSIONS = [
     { num: 1, time: '08:30 AM - 10:10 AM', isPeak: false },
@@ -161,6 +202,7 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
       const d = new Date();
       d.setDate(d.getDate() + i);
       const dayStr = d.toISOString().split('T')[0];
+      if (dayStr >= '2026-10-01') continue;
       days.push({
         dateStr: dayStr,
         dayName: weekdays[d.getDay()],
@@ -413,13 +455,6 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
               <div className="h-full bg-primary rounded-full" style={{ width: `${(completedSimulators / 3) * 100}%` }}></div>
             </div>
 
-            <div className="flex justify-between text-[10px] text-slate-500">
-              <span>Booking limit: Unrestricted</span>
-              <span className="font-bold text-primary">
-                {3 - completedSimulators > 0 ? `${3 - completedSimulators} session${3 - completedSimulators !== 1 ? 's' : ''} remaining` : 'Requirement Met'}
-              </span>
-            </div>
-
             {completedSimulators < 3 ? (
               <button
                 onClick={() => {
@@ -629,8 +664,16 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                     <input
                       type="date"
                       value={chosenDate}
-                      onChange={(e) => setChosenDate(e.target.value)}
-                      min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val >= '2026-10-01') {
+                          alert('Bookings are only available for Aug/Sep batches. October onwards is disabled.');
+                          return;
+                        }
+                        setChosenDate(val);
+                      }}
+                      min={new Date().toISOString().split('T')[0]}
+                      max="2026-09-30"
                       className="bg-white border border-outline-variant rounded-md px-2 py-1 text-xs font-semibold outline-none focus:border-primary"
                     />
                   </div>
@@ -645,14 +688,16 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                         const isClashing = bookings.some(
                           b => b.date === chosenDate && b.sessionNumber === session.num && b.status === 'scheduled'
                         );
+                        const isPassed = isSessionPassed(chosenDate, session.num);
+                        const isDisabled = isClashing || isPassed;
 
                         return (
                           <button
                             key={session.num}
-                            onClick={() => !isClashing && setChosenSession(session.num)}
-                            disabled={isClashing}
+                            onClick={() => !isDisabled && setChosenSession(session.num)}
+                            disabled={isDisabled}
                             className={`flex justify-between items-center p-3.5 border rounded-xl text-left transition-all ${
-                              isClashing
+                              isDisabled
                                 ? 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
                                 : chosenSession === session.num
                                   ? 'border-2 border-primary bg-primary-fixed/15'
@@ -661,16 +706,21 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                           >
                             <div className="flex items-center gap-3">
                               <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-extrabold font-mono ${
-                                isClashing 
+                                isDisabled 
                                   ? 'bg-slate-200 text-slate-400' 
                                   : 'bg-slate-100 text-primary'
                               }`}>{session.num}</span>
                               <div>
-                                <span className={`font-bold text-xs block ${isClashing ? 'text-slate-400 line-through' : 'text-primary'}`}>{session.time}</span>
+                                <span className={`font-bold text-xs block ${isDisabled ? 'text-slate-400 line-through' : 'text-primary'}`}>{session.time}</span>
                                 {isClashing ? (
                                   <span className="text-[10px] text-red-500 font-semibold flex items-center gap-1 mt-0.5">
                                     <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
                                     Clashes with other lesson
+                                  </span>
+                                ) : isPassed ? (
+                                  <span className="text-[10px] text-red-500 font-semibold flex items-center gap-1 mt-0.5">
+                                    <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
+                                    This slot has passed
                                   </span>
                                 ) : (
                                   <span className="text-[10px] text-slate-500">Regular training slot</span>
@@ -680,6 +730,8 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                             
                             {isClashing ? (
                               <span className="text-[8px] font-bold bg-red-50 text-red-600 px-2 py-1 rounded-full uppercase tracking-wider">Unavailable</span>
+                            ) : isPassed ? (
+                              <span className="text-[8px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-full uppercase tracking-wider">Passed</span>
                             ) : isPeak ? (
                               <span className="text-[8px] font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full uppercase tracking-wider">Peak (+$9.50)</span>
                             ) : (
@@ -694,6 +746,20 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                       <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-4 animate-fade-in">
                         <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 animate-bounce" />
                         <span>You already have another driving lesson scheduled for this time slot. Please select a non-clashing session.</span>
+                      </div>
+                    )}
+
+                    {currentSelectionIsPassed && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-4 animate-fade-in">
+                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 animate-bounce" />
+                        <span>This driving lesson time slot has already passed today. Please select a non-passed session.</span>
+                      </div>
+                    )}
+
+                    {chosenDate >= '2026-10-01' && (
+                      <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 text-xs font-bold rounded-xl border border-red-200 mt-4 animate-fade-in">
+                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 animate-bounce" />
+                        <span>Bookings are only available for Aug/Sep batches. October onwards is disabled.</span>
                       </div>
                     )}
                   </div>
@@ -789,10 +855,10 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
               {bookingStep < 4 ? (
                 <button
                   id="wizard-next-btn"
-                  disabled={bookingStep === 3 && currentSelectionIsClashing}
+                  disabled={bookingStep === 3 && (currentSelectionIsClashing || currentSelectionIsPassed || chosenDate >= '2026-10-01')}
                   onClick={() => setBookingStep(bookingStep + 1)}
                   className={`text-xs font-bold px-5 py-2.5 rounded-lg transition-all ${
-                    bookingStep === 3 && currentSelectionIsClashing
+                    bookingStep === 3 && (currentSelectionIsClashing || currentSelectionIsPassed || chosenDate >= '2026-10-01')
                       ? 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed'
                       : 'bg-primary hover:bg-safety-blue text-white cursor-pointer shadow-sm'
                   }`}
@@ -812,10 +878,10 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                   )}
                   <button
                     id="wizard-confirm-btn"
-                    disabled={walletBalance < totalSessionFee}
+                    disabled={walletBalance < totalSessionFee || currentSelectionIsClashing || currentSelectionIsPassed || chosenDate >= '2026-10-01'}
                     onClick={handleCreateBooking}
                     className={`text-white text-xs font-extrabold px-6 py-2.5 rounded-lg transition-colors shadow-sm uppercase tracking-wider ${
-                      walletBalance < totalSessionFee
+                      walletBalance < totalSessionFee || currentSelectionIsClashing || currentSelectionIsPassed || chosenDate >= '2026-10-01'
                         ? 'bg-slate-300 cursor-not-allowed'
                         : 'bg-green-600 hover:bg-green-700 cursor-pointer'
                     }`}
@@ -916,8 +982,16 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                   <input
                     type="date"
                     value={simulatorDate}
-                    onChange={(e) => setSimulatorDate(e.target.value)}
-                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val >= '2026-10-01') {
+                        alert('Bookings are only available for Aug/Sep batches. October onwards is disabled.');
+                        return;
+                      }
+                      setSimulatorDate(val);
+                    }}
+                    min={new Date().toISOString().split('T')[0]}
+                    max="2026-09-30"
                     className="bg-white border border-outline-variant rounded px-2 py-0.5 text-[11px] font-semibold outline-none focus:border-primary flex-grow"
                   />
                 </div>
@@ -931,14 +1005,16 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                     const isClashing = bookings.some(
                       b => b.date === simulatorDate && b.sessionNumber === session.num && b.status === 'scheduled'
                     );
+                    const isPassed = isSessionPassed(simulatorDate, session.num);
+                    const isDisabled = isClashing || isPassed;
                     return (
                       <button
                         key={session.num}
                         type="button"
-                        disabled={isClashing}
+                        disabled={isDisabled}
                         onClick={() => setSimulatorSession(session.num)}
                         className={`flex justify-between items-center p-2.5 border rounded-lg text-left transition-colors cursor-pointer ${
-                          isClashing
+                          isDisabled
                             ? 'bg-red-50/40 border-red-100 text-slate-300 line-through cursor-not-allowed opacity-60'
                             : simulatorSession === session.num
                               ? 'border-2 border-primary bg-primary-fixed/15 text-primary font-bold'
@@ -947,16 +1023,16 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                       >
                         <div className="flex items-center gap-2">
                           <span className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-extrabold font-mono ${
-                            isClashing 
+                            isDisabled 
                               ? 'bg-red-100 text-red-500' 
                               : 'bg-slate-100 text-primary'
                           }`}>{session.num}</span>
-                          <span className={`font-bold text-[11px] ${isClashing ? 'text-red-400' : 'text-primary'}`}>
+                          <span className={`font-bold text-[11px] ${isDisabled ? 'text-red-400' : 'text-primary'}`}>
                             {session.time.split(' - ')[0]}
                           </span>
                         </div>
                         <span className="text-[8px] font-black uppercase text-slate-400">
-                          {isClashing ? 'Clashed' : 'Lab'}
+                          {isClashing ? 'Clashed' : isPassed ? 'Passed' : 'Lab'}
                         </span>
                       </button>
                     );
@@ -984,6 +1060,24 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                   </div>
                 )}
 
+                {isSessionPassed(simulatorDate, simulatorSession) && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 p-2.5 rounded-lg text-[10px] flex items-start gap-1.5 mt-2 animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Passed Time:</strong> This session slot has already passed today. Please select a future date or session.
+                    </span>
+                  </div>
+                )}
+
+                {simulatorDate >= '2026-10-01' && (
+                  <div className="bg-red-50 border border-red-200 text-red-800 p-2.5 rounded-lg text-[10px] flex items-start gap-1.5 mt-2 animate-pulse">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Booking Closed:</strong> Simulator bookings are only available for August/September batches. October onwards is disabled.
+                    </span>
+                  </div>
+                )}
+
                 {bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled') && (
                   <div className="bg-red-50 border border-red-200 text-red-800 p-2.5 rounded-lg text-[10px] flex items-start gap-1.5 mt-2 animate-pulse">
                     <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
@@ -1006,10 +1100,12 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
               </button>
               <button
                 type="button"
-                disabled={walletBalance < 28.00 || !simulatorDate || bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled')}
+                disabled={walletBalance < 28.00 || !simulatorDate || simulatorDate >= '2026-10-01' || bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled') || isSessionPassed(simulatorDate, simulatorSession)}
                 onClick={() => {
                   if (walletBalance < 28.00) return;
+                  if (!simulatorDate || simulatorDate >= '2026-10-01') return;
                   if (bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled')) return;
+                  if (isSessionPassed(simulatorDate, simulatorSession)) return;
                   
                   // Deduct wallet
                   updateWallet(walletBalance - 28.00);
@@ -1044,7 +1140,7 @@ export default function BookingView({ selectedCourseId, setSelectedCourseId, enr
                   alert(`Simulator Module ${nextSimsNum} successfully booked! $28.00 debited from student wallet.`);
                 }}
                 className={`px-5 py-2 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                  walletBalance < 28.00 || !simulatorDate || bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled')
+                  walletBalance < 28.00 || !simulatorDate || simulatorDate >= '2026-10-01' || bookings.some(b => b.date === simulatorDate && b.sessionNumber === simulatorSession && b.status === 'scheduled') || isSessionPassed(simulatorDate, simulatorSession)
                     ? 'bg-slate-300 cursor-not-allowed'
                     : 'bg-green-600 hover:bg-green-700'
                 }`}
