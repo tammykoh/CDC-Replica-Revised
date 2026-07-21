@@ -1,0 +1,6 @@
+{
+  "name": "ComfortDelGro Driving Centre",
+  "description": "The official ComfortDelGro Driving Centre portal, featuring course exploration, interactive lesson booking, instructor selection, and institution profiles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #003469;
+  --color-safety-blue: #004B91;
+  --color-caution-gold: #FFD200;
+  --color-alert-red: #E30613;
+  --color-asphalt-gray: #1A1A1B;
+  --color-surface-mist: #F4F7FA;
+  --color-on-surface: #1B1C1C;
+  --color-on-surface-variant: #424751;
+  --color-outline-variant: #C2C6D2;
+  --color-surface: #FBF9F8;
+  --color-surface-dim: #DBD9D9;
+  --color-surface-bright: #FBF9F8;
+  --color-surface-container-low: #F5F3F3;
+  --color-surface-container: #EFEDED;
+  --color-surface-container-high: #EAE8E7;
+  --color-surface-container-highest: #E4E2E2;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-primary-fixed: #D5E3FF;
+  --color-primary-fixed-dim: #A7C8FF;
+  --color-on-primary-fixed: #001B3C;
+  --color-on-primary-fixed-variant: #004689;
+  --color-secondary-fixed: #FFE07C;
+  --color-secondary-fixed-dim: #ECC200;
+  --color-on-secondary-fixed: #231B00;
+  
+  --font-display: "Hanken Grotesk", sans-serif;
+  --font-sans: "Source Sans 3", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-surface-mist text-on-surface font-sans antialiased;
+    background-image: radial-gradient(rgba(0, 75, 145, 0.03) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F4F7FA;
+}
+::-webkit-scrollbar-thumb {
+  background: #C2C6D2;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #424751;
+}
